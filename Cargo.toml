@@ -1,0 +1,25 @@
+[package]
+name = "ublox-core"
+version = "0.1.0"
+authors = ["Todd Stellanova <tstellanova@users.noreply.github.com>"]
+edition = "2018"
+description = "BMI088 6DOF IMU driver for embedded hal"
+license = "BSD-3-Clause"
+repository = "https://github.com/tstellanova/ublox-core"
+categories = [
+    "embedded",
+    "hardware-support",
+    "no-std",
+]
+keywords = [
+    "embedded-hal-driver",
+    "UBLOX",
+    "GPS",
+    "M8"
+]
+readme = "README.md"
+
+[dependencies]
+embedded-hal = { version = "0.2.3", features = ["unproven"] }
+serde = { version = "1.0", default-features=false, features = ["derive"]}
+serde_derive = { version = "1.0"}
