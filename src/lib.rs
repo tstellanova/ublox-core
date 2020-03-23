@@ -1,7 +1,24 @@
+#![no_std]
+
+use embedded_hal as hal;
+
+mod interface;
+pub use interface::{SerialInterface};
+
 use serde_derive::{Serialize, Deserialize};
-use embedded_hal as ehal;
-use ehal::serial::{Read, Write};
-use ehal::blocking::{delay::DelayMs};
+use hal::serial::{Read, Write};
+use hal::blocking::{delay::DelayMs};
+
+
+/// Errors in this crate
+#[derive(Debug)]
+pub enum Error<CommE> {
+    /// Sensor communication error
+    Comm(CommE),
+
+    /// Sensor is not responding
+    Unresponsive,
+}
 
 pub struct UbxDriver<SI>
 where
@@ -9,23 +26,26 @@ where
 {
     inner: SI,
     read_buf: [u8; 128],
-
 }
 
 impl<SI> UbxDriver<SI>
     where
         SI: Write<u8> + Read<u8>
 {
-    fn new_with_uart(uart: SI) -> Self {
+    pub fn new_with_uart(uart: SI) -> Self {
         Self {
             inner: uart,
             read_buf: [0; 128]
         }
     }
 
-    pub fn setup(&mut self, delay_source: impl DelayMs<u8>) {
+    pub fn setup(&mut self, delay_source: &mut impl DelayMs<u8>) {
 
-        delay_source.delay(100);
+        delay_source.delay_ms(100);
+    }
+
+    pub fn read_packet(&mut self) {
+
     }
 }
 
