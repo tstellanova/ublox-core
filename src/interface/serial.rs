@@ -5,31 +5,30 @@ use crate::Error;
 /// This encapsulates the Serial UART peripheral
 /// and associated pins such as
 /// - DRDY: Data Ready: Sensor uses this to indicate it had data available for read
-pub struct SerialInterface<UART> {
-    /// the UART port to use when communicating
-    uart: UART,
-
+pub struct SerialInterface<SER> {
+    /// the serial port to use when communicating
+    serial: SER,
 }
 
-impl<UART, CommE> SerialInterface<UART>
+impl<SER, CommE> SerialInterface<SER>
     where
-        UART: hal::blocking::serial::Write<u8, Error = CommE>
+        SER: hal::blocking::serial::Write<u8>
         + hal::serial::Read<u8, Error = CommE>,
 {
-    pub fn new(uart: UART) -> Self {
-        Self { uart }
+    pub fn new(serial_port: SER) -> Self {
+        Self { serial: serial_port }
     }
 }
 
-impl<UART, CommE> DeviceInterface for SerialInterface<UART>
+impl<SER, CommE> DeviceInterface for SerialInterface<SER>
     where
-        UART: hal::blocking::serial::Write<u8, Error = CommE>
+        SER: hal::blocking::serial::Write<u8>
         + hal::serial::Read<u8, Error = CommE>,
 {
     type InterfaceError = Error<CommE>;
 
-    fn send_command(&mut self, cmd: &[u8]) -> Result<u8, Self::InterfaceError> {
-        self.uart.bwrite_all(cmd).map_err(Error::Comm)?;
-        unimplemented!()
+    fn send_command(&mut self, cmd: &[u8]) -> Result<(), Self::InterfaceError> {
+        self.serial.bwrite_all(cmd);
+        Ok(())
     }
 }

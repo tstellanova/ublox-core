@@ -3,10 +3,9 @@
 use embedded_hal as hal;
 
 mod interface;
-pub use interface::{SerialInterface};
+pub use interface::{DeviceInterface, SerialInterface};
 
 use serde_derive::{Serialize, Deserialize};
-use hal::serial::{Read, Write};
 use hal::blocking::{delay::DelayMs};
 
 
@@ -20,33 +19,46 @@ pub enum Error<CommE> {
     Unresponsive,
 }
 
-pub struct UbxDriver<SI>
-where
-    SI: Write<u8> + Read<u8>
+
+pub fn new_serial_driver<UART, CommE>(
+    uart: UART,
+) -> UbxDriver<SerialInterface<UART>>
+    where
+        UART: hal::blocking::serial::Write<u8>
+        + hal::serial::Read<u8, Error = CommE>,
+        CommE: core::fmt::Debug,
 {
-    inner: SI,
+    let iface = interface::SerialInterface::new(uart);
+    UbxDriver::new_with_interface(iface)
+}
+
+
+pub struct UbxDriver<DI>
+{
+    /// the device interface
+    di: DI,
+    /// buffer for blocking reads
     read_buf: [u8; 128],
 }
 
-impl<SI> UbxDriver<SI>
+impl<DI, CommE> UbxDriver<DI>
     where
-        SI: Write<u8> + Read<u8>
+        DI: DeviceInterface<InterfaceError = Error<CommE>>,
+        CommE: core::fmt::Debug,
 {
-    pub fn new_with_uart(uart: SI) -> Self {
+    pub(crate) fn new_with_interface(device_interface: DI) -> Self {
         Self {
-            inner: uart,
+            di: device_interface,
             read_buf: [0; 128]
         }
     }
 
-    pub fn setup(&mut self, delay_source: &mut impl DelayMs<u8>) {
-
+    pub fn setup(&mut self, delay_source: &mut impl DelayMs<u8>) -> Result<(), DI::InterfaceError> {
+        self.di.send_command(&[0,0,5])?;
         delay_source.delay_ms(100);
+        Ok(())
     }
 
-    pub fn read_packet(&mut self) {
-
-    }
 }
 
 /// Support UBX-NAV-PVT message

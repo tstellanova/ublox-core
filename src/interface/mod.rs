@@ -8,6 +8,6 @@ pub trait DeviceInterface {
     /// Interface associated error type
     type InterfaceError;
 
-    fn send_command(&mut self, cmd: &[u8]) -> Result<u8, Self::InterfaceError>;
+    fn send_command(&mut self, cmd: &[u8]) -> Result<(), Self::InterfaceError>;
 
 }
