@@ -4,7 +4,7 @@ use genio::Read;
 /// Support UBX-NAV-PVT message
 /// Navigation Position Velocity Time Solution
 #[repr(C)]
-#[derive( Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct NavPosVelTimeM8 {
     /// GPS time of week of the navigation epoch. (ms)
     pub itow: u32,
