@@ -1,11 +1,17 @@
+/*
+Copyright (c) 2020 Todd Stellanova
+LICENSE: BSD3 (see LICENSE file)
+*/
+
 #![no_std]
 
 use embedded_hal as hal;
 
+//used for converting byte slices to structs
+use genio::Read;
+
 mod interface;
 pub use interface::{DeviceInterface, SerialInterface};
-
-use serde_derive::{Serialize, Deserialize};
 
 use hal::blocking::{delay::DelayMs};
 
@@ -21,9 +27,7 @@ pub enum Error<CommE> {
 }
 
 
-pub fn new_serial_driver<UART, CommE>(
-    uart: UART,
-) -> UbxDriver<SerialInterface<UART>>
+pub fn new_serial_driver<UART, CommE>( uart: UART) -> UbxDriver<SerialInterface<UART>>
     where
         UART: hal::serial::Read<u8, Error = CommE>,
         CommE: core::fmt::Debug,
@@ -69,12 +73,30 @@ impl<DI, CommE> UbxDriver<DI>
         checksum
     }
 
+    /// Read a NAV_PVT message from the device
+    fn handle_nav_pvt_msg(&mut self) -> Result<(), DI::InterfaceError> {
+        const UBX_MSG_LEN_NAV_PVT:usize = 96;
+        let mut read_buf = [0u8; UBX_MSG_LEN_NAV_PVT];
+        self.di.read_many(&mut read_buf)?;
+        //TODO read and verify checksum
+
+        let struct_size = core::mem::size_of::<NavPosVelTimeM8>();
+        let msg = unsafe {
+            let mut msg: NavPosVelTimeM8 = unsafe { core::mem::zeroed() };
+            let msg_slice = core::slice::from_raw_parts_mut(&mut msg as *mut _ as *mut u8, struct_size);
+            (&read_buf[..]).read_exact(msg_slice).unwrap();
+            msg
+        };
+
+        Ok(())
+    }
+
+    /// return 1 if we handled a message?
     fn handle_one_message(&mut self)  -> Result<usize, DI::InterfaceError> {
         const UBX_PRELUDE_BYTES: [u8;2] = [0xB5, 0x62];
         const UBX_MSG_CLASS_NAV:u8 = 0x01;
         const UBX_MSG_ID_NAV_PVT:u8 = 0x07;
         const UBX_MSG_CLASSID_NAV_PVT: u16 = (UBX_MSG_ID_NAV_PVT as u16) << 8 | (UBX_MSG_CLASS_NAV as u16);
-        const UBX_MSG_LEN_NAV_PVT:usize = 96;
 
 
         let mut msg_idx = 0;
@@ -106,11 +128,11 @@ impl<DI, CommE> UbxDriver<DI>
                     //TODO verify the msg_class is in a recognized set
                     if msg_class_id == UBX_MSG_CLASSID_NAV_PVT {
                         //TODO read the rest of this recognized packet
+                        self.handle_nav_pvt_msg();
                     }
-                    else {
-                        //skip to the next packet header
-                        msg_idx = 0;
-                    }
+
+                    //skip to the next packet header
+                    msg_idx = 0;
                 },
                 _ => {
                     // start a new packet
@@ -126,7 +148,8 @@ impl<DI, CommE> UbxDriver<DI>
 
 /// Support UBX-NAV-PVT message
 /// Navigation Position Velocity Time Solution
-#[derive(Serialize, Deserialize, Debug)]
+#[repr(C)]
+#[derive( Debug)]
 pub struct NavPosVelTimeM8 {
     /// GPS time of week of the navigation epoch. (ms)
     pub itow: u32,

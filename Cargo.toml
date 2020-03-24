@@ -22,5 +22,7 @@ readme = "README.md"
 [dependencies]
 embedded-hal = { version = "0.2.3", features = ["unproven"] }
 nb = {version = "0.1.2" }
-serde = { version = "1.0", default-features=false, features = ["derive"]}
-serde_derive = { version = "1.0"}
+genio = {version="0.2.1", default-features = false}
+
+
+
