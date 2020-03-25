@@ -3,6 +3,7 @@ use super::DeviceInterface;
 use crate::Error;
 use nb::{block};
 
+
 /// This encapsulates the Serial UART peripheral
 /// and associated pins such as
 /// - DRDY: Data Ready: Sensor uses this to indicate it had data available for read

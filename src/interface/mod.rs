@@ -8,6 +8,7 @@ pub trait DeviceInterface {
     /// Interface associated error type
     type InterfaceError;
 
+
     /// Read a single byte from the device
     fn read(&mut self) -> Result<u8, Self::InterfaceError>;
 

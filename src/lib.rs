@@ -60,7 +60,19 @@ impl<DI, CommE> UbxDriver<DI>
 
     pub fn setup(&mut self, delay_source: &mut impl DelayMs<u8>) -> Result<(), DI::InterfaceError> {
         //TODO configure ublox sensor? or assume it's preconfigured?
-        delay_source.delay_ms(100);
+
+        let msg_count = self.handle_one_message() .unwrap();
+        if msg_count > 0 {
+            //yippee, we're already able to receive messages
+        }
+        else {
+            //TODO the uart setup could be fallible
+            //TODO reset the baud rate and retry
+            //self.di.setup(&mut delay_source);
+
+        }
+
+
         Ok(())
     }
 
@@ -72,8 +84,8 @@ impl<DI, CommE> UbxDriver<DI>
     fn checksum_for_payload(payload: &[u8]) -> [u8; 2] {
         let mut checksum = [0u8; 2];
         for b in payload {
-            checksum[0].wrapping_add(*b);
-            checksum[1].wrapping_add(checksum[0]);
+            checksum[0] = checksum[0].wrapping_add(*b);
+            checksum[1] = checksum[1].wrapping_add(checksum[0]);
         }
         checksum
     }
