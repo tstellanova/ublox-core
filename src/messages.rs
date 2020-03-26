@@ -75,11 +75,14 @@ pub struct NavPosVelTimeM8 {
 }
 
 /// Read a NavPosVelTimeM8 from a slice
-pub fn read_nav_pvt(buf:&[u8]) -> NavPosVelTimeM8 {
+pub fn read_nav_pvt(buf: &[u8]) -> NavPosVelTimeM8 {
     let struct_size = core::mem::size_of::<NavPosVelTimeM8>();
     unsafe {
-        let mut msg: NavPosVelTimeM8 = core::mem::zeroed() ;
-        let msg_as_slice = core::slice::from_raw_parts_mut(&mut msg as *mut _ as *mut u8, struct_size);
+        let mut msg: NavPosVelTimeM8 = core::mem::zeroed();
+        let msg_as_slice = core::slice::from_raw_parts_mut(
+            &mut msg as *mut _ as *mut u8,
+            struct_size,
+        );
         (&buf[..]).read_exact(msg_as_slice).unwrap();
         msg
     }

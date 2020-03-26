@@ -27,10 +27,10 @@ genio = {version="0.2.1", default-features = false}
 
 [[example]]
 name = "serial"
-[dev-dependencies]
+[target.'cfg(target_arch = "arm")'.dev-dependencies]
 cortex-m-rt = "0.6.10"
+panic-abort = "0.3.2"
 #stm32h7xx-hal = { version = "0.4.0", features = ["stm32h743", "rt"] }
 #stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = ["stm32h743", "rt"] }
 stm32h7xx-hal = { path = "../stm32h7xx-hal",  features = ["stm32h743", "rt"] }
-panic-abort = "0.3.2"
 

@@ -1,4 +1,3 @@
-
 pub mod serial;
 
 pub use self::serial::SerialInterface;
@@ -8,10 +7,12 @@ pub trait DeviceInterface {
     /// Interface associated error type
     type InterfaceError;
 
-
     /// Read a single byte from the device
     fn read(&mut self) -> Result<u8, Self::InterfaceError>;
 
     /// Rea multiple bytes from the device
-    fn read_many(&mut self, buffer: &mut [u8]) -> Result<(), Self::InterfaceError>;
+    fn read_many(
+        &mut self,
+        buffer: &mut [u8],
+    ) -> Result<(), Self::InterfaceError>;
 }

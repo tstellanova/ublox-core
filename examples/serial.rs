@@ -3,15 +3,13 @@
 #![no_main]
 #![no_std]
 
-
 // extern crate panic_abort;
 
 use cortex_m;
 use cortex_m_rt::entry;
+use embedded_hal::blocking::delay::DelayMs;
 use stm32h7xx_hal as p_hal;
 use stm32h7xx_hal::{pac, prelude::*};
-use embedded_hal::blocking::delay::DelayMs;
-
 
 // use nb::block;
 use core::fmt::Write;
@@ -48,9 +46,9 @@ fn main() -> ! {
         dp.UART7.usart((tx, rx), config, &mut ccdr).unwrap()
     };
 
-    const BAUD_SEQ: [u32; 6] =  [115200, 38400, 57600, 9600, 115200, 230400];
-    let  baud_idx = 0;
-    let  baud = BAUD_SEQ[baud_idx];
+    const BAUD_SEQ: [u32; 6] = [115200, 38400, 57600, 9600, 115200, 230400];
+    let baud_idx = 0;
+    let baud = BAUD_SEQ[baud_idx];
 
     // GPS1 port USART1:
     let mut usart1_port = {
@@ -67,7 +65,7 @@ fn main() -> ! {
     let (mut dtx, mut _drx) = uart7_port.split();
 
     const UBX_SYNC1: u8 = 0xb5;
-    const UBX_SYNC2:u8 = 0x62;
+    const UBX_SYNC2: u8 = 0x62;
     let mut packet_buf = [0u8; 128];
     let mut recv_count = 0;
     let mut error_count = 0;
@@ -79,17 +77,15 @@ fn main() -> ! {
         if let Ok(byte) = result {
             error_count = 0;
 
-            if byte == UBX_SYNC2
-             &&  last_byte == UBX_SYNC1
-            {
+            if byte == UBX_SYNC2 && last_byte == UBX_SYNC1 {
                 if header_found && recv_count > 2 {
                     //close out the last packet
-                    let slc = &packet_buf[..recv_count-1];
+                    let slc = &packet_buf[..recv_count - 1];
                     write!(dtx, "[{}] ", recv_count).unwrap();
                     for b in slc {
                         write!(dtx, "{:x} ", b).unwrap();
                     }
-                    writeln!(dtx,"\r").unwrap();
+                    writeln!(dtx, "\r").unwrap();
                     //write!(dtx, "{:?} ", packet_buf).unwrap();
                 }
                 header_found = true;
