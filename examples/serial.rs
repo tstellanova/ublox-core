@@ -126,12 +126,10 @@ fn monitor_serial_ubx(console: &mut u32, driver: &mut u32) {
                         "\r\n{} {:?} {}\r",
                         baud, result, error_count
                     )
-                        .unwrap();
+                    .unwrap();
                     error_count += 1;
                 }
             }
         }
-
-
     }
 }
