@@ -12,6 +12,12 @@ This is work-in-progress
 - [ ] I2C support
 
 
+## Examples
+
+Build example for eg Durandal stm32h743 board target:
+```
+cargo build --example serial --target thumbv7em-none-eabihf 
+```
 
 
 ## License

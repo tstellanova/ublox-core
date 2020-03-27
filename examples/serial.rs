@@ -3,18 +3,29 @@
 #![no_main]
 #![no_std]
 
-// extern crate panic_abort;
+// pick a panicking behavior
+#[cfg(not(debug_assertions))]
+extern crate panic_halt; // you can put a breakpoint on `rust_begin_unwind` to catch panics
+#[cfg(debug_assertions)]
+extern crate panic_semihosting; // logs messages to the host stderr; requires a debugger
 
 use cortex_m;
+use cortex_m_rt as rt;
 use cortex_m_rt::entry;
 use embedded_hal::blocking::delay::DelayMs;
 use stm32h7xx_hal as p_hal;
 use stm32h7xx_hal::{pac, prelude::*};
 
-// use nb::block;
 use core::fmt::Write;
 use p_hal::serial::Error;
 
+use ublox_core as ublox;
+
+/// This example was tested on the Durandal stm32h743-based
+/// flight controller board, which provides a USART1 ("GPS1") port that
+/// connects to a number of ublox-m8 based GPS modules using a
+/// "dronecode" standard connector.
+///
 #[entry]
 fn main() -> ! {
     let cp = cortex_m::Peripherals::take().unwrap();
@@ -30,14 +41,13 @@ fn main() -> ! {
     let clocks = ccdr.clocks;
     let mut delay_source = p_hal::delay::Delay::new(cp.SYST, clocks);
 
-    // Acquire the GPIOC peripheral. This also enables the clock for
-    // GPIOC in the RCC register.
+    // Acquire the gpio peripherals.
+    // This also enables the clock for GPIO in the RCC register.
     let gpiob = dp.GPIOB.split(&mut ccdr.ahb4);
-    // let gpioc = dp.GPIOC.split(&mut ccdr.ahb4);
     let gpioe = dp.GPIOE.split(&mut ccdr.ahb4);
     let gpiof = dp.GPIOF.split(&mut ccdr.ahb4);
 
-    //UART7 is debug (dronecode port): `(PF6, PE8)`
+    //UART7 is debug (dronecode debug port): `(PF6, PE8)`
     let uart7_port = {
         let config =
             p_hal::serial::config::Config::default().baudrate(57_600_u32.bps());
@@ -46,14 +56,10 @@ fn main() -> ! {
         dp.UART7.usart((tx, rx), config, &mut ccdr).unwrap()
     };
 
-    const BAUD_SEQ: [u32; 6] = [115200, 38400, 57600, 9600, 115200, 230400];
-    let baud_idx = 0;
-    let baud = BAUD_SEQ[baud_idx];
-
     // GPS1 port USART1:
     let mut usart1_port = {
         let config =
-            p_hal::serial::config::Config::default().baudrate(baud.bps());
+            p_hal::serial::config::Config::default().baudrate(115200.bps());
         let rx = gpiob.pb7.into_alternate_af7();
         let tx = gpiob.pb6.into_alternate_af7();
         dp.USART1.usart((tx, rx), config, &mut ccdr).unwrap()
@@ -61,9 +67,12 @@ fn main() -> ! {
 
     delay_source.delay_ms(1u8);
 
-    // bkpt();
     let (mut dtx, mut _drx) = uart7_port.split();
+    let driver = ublox::new_serial_driver(usart1_port);
+    monitor_serial_ubx(&mut dtx, &mut driver);
+}
 
+fn monitor_serial_ubx(console: &mut u32, driver: &mut u32) {
     const UBX_SYNC1: u8 = 0xb5;
     const UBX_SYNC2: u8 = 0x62;
     let mut packet_buf = [0u8; 128];
@@ -117,25 +126,12 @@ fn main() -> ! {
                         "\r\n{} {:?} {}\r",
                         baud, result, error_count
                     )
-                    .unwrap();
+                        .unwrap();
                     error_count += 1;
                 }
             }
         }
 
-        // if error_count > 10 {
-        //     //try another baud rate
-        //     baud_idx = (baud_idx + 1) % BAUD_SEQ.len();
-        //     baud = BAUD_SEQ[baud_idx];
-        //     let (port, (tx, rx)) = usart1_port.release();
-        //     usart1_port = {
-        //         let config = p_hal::serial::config::Config::default()
-        //             .baudrate(baud.bps());
-        //         port.usart((tx, rx), config, &mut ccdr).unwrap()
-        //     };
-        //     recv_count = 0;
-        //     error_count = 0;
-        //     delay_source.delay_ms(1u8);
-        // }
+
     }
 }

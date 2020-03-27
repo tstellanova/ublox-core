@@ -57,7 +57,7 @@ where
 
     pub fn setup(
         &mut self,
-        delay_source: &mut impl DelayMs<u8>,
+        _delay_source: &mut impl DelayMs<u8>,
     ) -> Result<(), DI::InterfaceError> {
         //TODO configure ublox sensor? or assume it's preconfigured?
 
@@ -90,7 +90,7 @@ where
     /// Read a NAV_PVT message from the device
     fn handle_nav_pvt_msg(&mut self) -> Result<(), DI::InterfaceError> {
         const UBX_MSG_LEN_NAV_PVT: usize = 96;
-        let mut read_buf = [0u8; UBX_MSG_LEN_NAV_PVT];
+        let read_buf = [0u8; UBX_MSG_LEN_NAV_PVT];
         let mut cksum_buf = [0u8; 2];
         self.di.read_many(&mut cksum_buf)?;
         //TODO verify checksum
@@ -125,12 +125,10 @@ where
         const UBX_PRELUDE_BYTES: [u8; 2] = [0xB5, 0x62];
         const UBX_MSG_CLASS_NAV: u8 = 0x01;
         const UBX_MSG_ID_NAV_PVT: u8 = 0x07;
-        const UBX_MSG_CLASSID_NAV_PVT: u16 =
-            (UBX_MSG_ID_NAV_PVT as u16) << 8 | (UBX_MSG_CLASS_NAV as u16);
 
         let mut msg_idx = 0;
-        let mut msg_class_id: u16 = 0;
-        let mut msg_len: usize = 0;
+        let mut msg_class_id: u8 = 0;
+        let mut msg_sub_id: u8;
         loop {
             if let Ok(byte) = self.di.read() {
                 match msg_idx {
@@ -138,39 +136,45 @@ where
                         // look for the beginning of a UBX header
                         if byte == UBX_PRELUDE_BYTES[msg_idx] {
                             msg_idx += 1;
+                            continue;
                         } else {
                             // reset: the byte doesn't match the prelude sequence
                             msg_idx = 0;
                             continue;
                         }
-                    }
+                    },
                     2 => {
-                        //first comes the message class
-                        msg_class_id = byte as u16;
+                        // next comes msg class
+                        msg_class_id = byte;
                         msg_idx += 1;
-                    }
+                        continue;
+                    },
                     3 => {
-                        // next comes the message ID
-                        msg_class_id |= (byte as u16) << 8;
+                        // next comes msg ID
+                        msg_sub_id = byte;
                         msg_idx += 1;
-                        //TODO verify the msg_class is in a recognized set
-                        if msg_class_id == UBX_MSG_CLASSID_NAV_PVT {
-                            //TODO read the rest of this recognized packet
-                            self.handle_nav_pvt_msg()?;
-                            return Ok(1);
+
+                        match msg_class_id  {
+                            UBX_MSG_CLASS_NAV => {
+                                match msg_sub_id {
+                                    UBX_MSG_ID_NAV_PVT => {
+                                        self.handle_nav_pvt_msg()?;
+                                        return Ok(1);
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            _ => {}
                         }
-
-                        //skip to the next packet header
+                        // unhandled message type...skip to next message
                         msg_idx = 0;
-                    }
-                    _ => {
-                        // start a new packet
-                        msg_idx = 0;
-                    }
+                        continue;
+                    },
+                    _ => {}
                 }
-
                 return Ok(0);
             } else {
+                //read failed so we're unable to handle any messages
                 break;
             }
         }

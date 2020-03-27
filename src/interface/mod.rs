@@ -10,7 +10,7 @@ pub trait DeviceInterface {
     /// Read a single byte from the device
     fn read(&mut self) -> Result<u8, Self::InterfaceError>;
 
-    /// Rea multiple bytes from the device
+    /// Read multiple bytes from the device
     fn read_many(
         &mut self,
         buffer: &mut [u8],
