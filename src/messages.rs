@@ -3,7 +3,6 @@ use genio::Read;
 
 /// Support UBX-NAV-PVT message
 /// Navigation Position Velocity Time Solution
-#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct NavPosVelTimeM8 {
     /// GPS time of week of the navigation epoch. (ms)
@@ -64,8 +63,8 @@ pub struct NavPosVelTimeM8 {
     pub heading_accuracy: u32,
     /// Position Dilution of Precision
     pub pos_dop: u16,
-    pub reserved1_a: u16,
-    pub reserved1_b: u32,
+    /// reserved
+    pub reserved1: [u8; 6],
     /// Heading of vehicle (1e-5 degrees)
     pub heading_vehicle: i32,
     /// Magnetic declination (1e-2 degrees)
@@ -73,29 +72,26 @@ pub struct NavPosVelTimeM8 {
     /// Magnetic declination accuracy (1e-2 degrees)
     pub mag_accuracy: u16,
 }
-
-/// Read a NavPosVelTimeM8 from a slice
 pub fn nav_pvt_from_bytes(buf: &[u8]) -> Option<NavPosVelTimeM8> {
     ubx_struct_from_bytes(buf)
 }
 
 /// UBX-MON-HW message: Hardware Status
 /// See 32.16.4 UBX-MON-HW (0x0A 0x09)
-#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct MonHardwareM8 {
-    pub pin_sel: u32,  //pinSel - Mask of Pins Set as Peripheral/PIO
-    pub pin_bank: u32, //pinBank - Mask of Pins Set as Bank A/B
-    pub pin_direction: u32, //pinDir - Mask of Pins Set as Input/Output
-    pub pin_values: u32, //pinVal - Mask of Pins Value Low/High
-    pub noise_per_ms: u16, //noisePerMS - Noise Level as measured by the GPS Core
-    pub agc_count: u16, //agcCnt - AGC Monitor (counts SIGHI xor SIGLO, range 0 to 8191)
-    pub ant_status: u8, //aStatus - Status of the Antenna Supervisor State Machine (0=INIT, 1=DONTKNOW, 2=OK, 3=SHORT, 4=OPEN)
-    pub ant_power: u8, //aPower - Current PowerStatus of Antenna (0=OFF, 1=ON, 2=DONTKNOW)
-    pub flags: u8,     //flags - Flags (see graphic below)
-    pub reserved: u8,  //reserved1 - Reserved
-    pub used_mask: u32, //usedMask - Mask of Pins that are used by the Virtual Pin Manager
-    pub pin_maps: [u8; 17], //U1[17] - VP - Array of Pin Mappings for each of the 17 Physical Pins
+    pub pin_sel: u32,  //0 pinSel - Mask of Pins Set as Peripheral/PIO
+    pub pin_bank: u32, //4 pinBank - Mask of Pins Set as Bank A/B
+    pub pin_direction: u32, //8 pinDir - Mask of Pins Set as Input/Output
+    pub pin_values: u32, //12 pinVal - Mask of Pins Value Low/High
+    pub noise_per_ms: u16, //16 noisePerMS - Noise Level as measured by the GPS Core
+    pub agc_count: u16, //18 agcCnt - AGC Monitor (counts SIGHI xor SIGLO, range 0 to 8191)
+    pub ant_status: u8, //20 aStatus - Status of the Antenna Supervisor State Machine (0=INIT, 1=DONTKNOW, 2=OK, 3=SHORT, 4=OPEN)
+    pub ant_power: u8, //21 aPower - Current PowerStatus of Antenna (0=OFF, 1=ON, 2=DONTKNOW)
+    pub flags: u8,     //22 flags - Flags (see graphic below)
+    pub reserved: u8,  //23 reserved1 - Reserved
+    pub used_mask: u32, //24 usedMask - Mask of Pins that are used by the Virtual Pin Manager
+    pub pin_maps: [u8; 17], //28 U1[17] - VP - Array of Pin Mappings for each of the 17 Physical Pins
     pub jam_ind: u8, //45 U1 - jamInd - CW Jamming indicator, scaled (0 = no CW jamming, 255 = strong CW jamming)
     pub reserved2: [u8; 2], //46 U1[2] - reserved2 - Reserved
     pub pin_irq: u32, //48 X4 - pinIrq - Mask of Pins Value using the PIO Irq
@@ -108,10 +104,9 @@ pub fn mon_hw_from_bytes(buf: &[u8]) -> Option<MonHardwareM8> {
 
 /// UBX-NAV-DOP message: Dilution of precision
 /// See 32.17.5 UBX-NAV-DOP (0x01 0x04)
-#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct NavDopM8 {
-    pub itow: u32, //0  ms GPS time of week of the navigation epoch. See the description of iTOW for details.
+    pub itow: u32,  //0 ms GPS time of week of the navigation epoch.
     pub g_dop: u16, //4 gDOP Geometric DOP 0.01
     pub p_dop: u16, //6 pDOP Position DOP 0.01
     pub t_dop: u16, //8 tDOP Time DOP 0.01
@@ -130,15 +125,18 @@ pub fn nav_dop_from_bytes(buf: &[u8]) -> Option<NavDopM8> {
 pub fn ubx_struct_from_bytes<T>(buf: &[u8]) -> Option<T> {
     let struct_size = core::mem::size_of::<T>();
     unsafe {
-        let mut msg: T = core::mem::zeroed();
+        let mut msg = core::mem::zeroed();
         let msg_as_slice = core::slice::from_raw_parts_mut(
-            &mut msg as *mut _ as *mut u8,
+            &mut msg as *mut T as *mut u8,
             struct_size,
         );
         if (&buf[..]).read_exact(msg_as_slice).is_ok() {
             Some(msg)
         } else {
+            core::mem::forget(msg);
             None
         }
     }
 }
+
+

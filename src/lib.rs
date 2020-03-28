@@ -10,7 +10,7 @@ use embedded_hal as hal;
 mod interface;
 pub use interface::{DeviceInterface, SerialInterface};
 
-use crate::messages::{MonHardwareM8, NavDopM8, NavPosVelTimeM8};
+use crate::messages::{MonHardwareM8, NavDopM8, NavPosVelTimeM8, mon_hw_from_bytes};
 use hal::blocking::delay::DelayMs;
 
 mod messages;
@@ -90,35 +90,44 @@ where
         checksum
     }
 
+    fn checksum_ok(&self, msg_len: usize) -> bool {
+        let ck = Self::checksum_for_payload(&self.read_buf[..msg_len]);
+        let recvd_ck = &self.read_buf[msg_len..msg_len+2];
+        ck[0] == recvd_ck[0] && ck[1] == recvd_ck[1]
+    }
+
     /// Read a UBX-NAV-PVT message from the device
     fn handle_msg_nav_pvt(&mut self) -> Result<(), DI::InterfaceError> {
-        const UBX_MSG_LEN_NAV_PVT: usize = 94 + 2;
+        const UBX_MSG_LEN_NAV_PVT: usize = 94;
         self.di
-            .read_many(&mut self.read_buf[..UBX_MSG_LEN_NAV_PVT])?;
-        //TODO verify checksum
-        self.last_nav_pvt =
-            messages::nav_pvt_from_bytes(&self.read_buf.as_ref());
+            .read_many(&mut self.read_buf[2..UBX_MSG_LEN_NAV_PVT+4])?;
+        if self.checksum_ok(UBX_MSG_LEN_NAV_PVT) {
+            self.last_nav_pvt =
+                messages::nav_pvt_from_bytes(&self.read_buf.as_ref());
+        }
         Ok(())
     }
 
     /// Read a UBX-NAV-DOP message from the device
     fn handle_msg_nav_dop(&mut self) -> Result<(), DI::InterfaceError> {
-        const UBX_MSG_LEN_NAV_DOP: usize = 18 + 2;
+        const UBX_MSG_LEN_NAV_DOP: usize = 18;
         self.di
-            .read_many(&mut self.read_buf[..UBX_MSG_LEN_NAV_DOP])?;
-        //TODO verify checksum
-        self.last_nav_dop =
-            messages::nav_dop_from_bytes(&self.read_buf.as_ref());
+            .read_many(&mut self.read_buf[2..UBX_MSG_LEN_NAV_DOP+4])?;
+        if self.checksum_ok(UBX_MSG_LEN_NAV_DOP) {
+            self.last_nav_dop =
+                messages::nav_dop_from_bytes(&self.read_buf.as_ref());
+        }
         Ok(())
     }
 
     /// Read a UBX-MON-HW message from the device
     fn handle_msg_mon_hw(&mut self) -> Result<(), DI::InterfaceError> {
-        const UBX_MSG_LEN_MON_HW: usize = 60 + 2;
+        const UBX_MSG_LEN_MON_HW: usize = 60;
         self.di
-            .read_many(&mut self.read_buf[..UBX_MSG_LEN_MON_HW])?;
-        //TODO verify checksum
-        self.last_mon_hw = messages::mon_hw_from_bytes(&self.read_buf.as_ref());
+            .read_many(&mut self.read_buf[2..UBX_MSG_LEN_MON_HW+4])?;
+        if self.checksum_ok(UBX_MSG_LEN_MON_HW) {
+            self.last_mon_hw = mon_hw_from_bytes(&self.read_buf.as_ref());
+        }
         Ok(())
     }
 
@@ -173,7 +182,8 @@ where
                     let msg_sub_id = byte;
                     let msg_unique_id: u16 =
                         (msg_class_id as u16) << 8 | (msg_sub_id as u16);
-
+                    self.read_buf[0] = msg_class_id;
+                    self.read_buf[1] = msg_sub_id;
                     match msg_unique_id {
                         UBX_MSG_ID_NAV_PVT => {
                             self.handle_msg_nav_pvt()?;
