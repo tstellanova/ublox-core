@@ -1,8 +1,21 @@
 //used for converting byte slices to structs
 use genio::Read;
 
-/// Support UBX-NAV-PVT message
-/// Navigation Position Velocity Time Solution
+
+pub const UBX_HEADER_LEN: usize = 4;
+pub const UBX_CKSUM_LEN: usize = 2;
+
+pub const UBX_PRELUDE_BYTES: [u8; 2] = [0xB5, 0x62];
+// pub const UBX_MSG_CLASS_NAV: u8 = 0x01;
+// pub const UBX_MSG_CLASS_MON: u8 = 0x0A;
+
+pub const UBX_MSG_ID_NAV_PVT: u16 = 0x0107;
+pub const UBX_MSG_ID_NAV_DOP: u16 = 0x0104;
+pub const UBX_MSG_ID_MON_HW: u16 = 0x0A09;
+
+/// Support UBX-NAV-PVT message: Navigation Position Velocity Time Solution
+/// See 32.17.14 UBX-NAV-PVT (0x01 0x07)
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct NavPosVelTimeM8 {
     /// GPS time of week of the navigation epoch. (ms)
@@ -69,22 +82,25 @@ pub struct NavPosVelTimeM8 {
     pub heading_vehicle: i32,
     /// Magnetic declination (1e-2 degrees)
     pub mag_dec: i16,
-    /// Magnetic declination accuracy (1e-2 degrees)
+    /// 90 Magnetic declination accuracy (1e-2 degrees)
     pub mag_accuracy: u16,
 }
+pub const UBX_MSG_LEN_NAV_PVT: usize = 92;
 pub fn nav_pvt_from_bytes(buf: &[u8]) -> Option<NavPosVelTimeM8> {
     ubx_struct_from_bytes(buf)
 }
 
 /// UBX-MON-HW message: Hardware Status
 /// See 32.16.4 UBX-MON-HW (0x0A 0x09)
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct MonHardwareM8 {
     pub pin_sel: u32,  //0 pinSel - Mask of Pins Set as Peripheral/PIO
     pub pin_bank: u32, //4 pinBank - Mask of Pins Set as Bank A/B
     pub pin_direction: u32, //8 pinDir - Mask of Pins Set as Input/Output
     pub pin_values: u32, //12 pinVal - Mask of Pins Value Low/High
-    pub noise_per_ms: u16, //16 noisePerMS - Noise Level as measured by the GPS Core
+    /// 16 noisePerMS - Noise Level as measured by the GPS Core
+    pub noise_per_ms: u16,
     pub agc_count: u16, //18 agcCnt - AGC Monitor (counts SIGHI xor SIGLO, range 0 to 8191)
     pub ant_status: u8, //20 aStatus - Status of the Antenna Supervisor State Machine (0=INIT, 1=DONTKNOW, 2=OK, 3=SHORT, 4=OPEN)
     pub ant_power: u8, //21 aPower - Current PowerStatus of Antenna (0=OFF, 1=ON, 2=DONTKNOW)
@@ -92,18 +108,21 @@ pub struct MonHardwareM8 {
     pub reserved: u8,  //23 reserved1 - Reserved
     pub used_mask: u32, //24 usedMask - Mask of Pins that are used by the Virtual Pin Manager
     pub pin_maps: [u8; 17], //28 U1[17] - VP - Array of Pin Mappings for each of the 17 Physical Pins
-    pub jam_ind: u8, //45 U1 - jamInd - CW Jamming indicator, scaled (0 = no CW jamming, 255 = strong CW jamming)
+    /// 45 U1 - jamInd - CW Jamming indicator, scaled (0 = no CW jamming, 255 = strong CW jamming)
+    pub jam_ind: u8,
     pub reserved2: [u8; 2], //46 U1[2] - reserved2 - Reserved
     pub pin_irq: u32, //48 X4 - pinIrq - Mask of Pins Value using the PIO Irq
     pub pull_high: u32, //52 X4 - pullH - Mask of Pins Value using the PIO Pull High Resistor
     pub pull_low: u32, //56 X4 - pullL - Mask of Pins Value using the PIO Pull Low Resistor
 }
+pub const UBX_MSG_LEN_MON_HW: usize = 60;
 pub fn mon_hw_from_bytes(buf: &[u8]) -> Option<MonHardwareM8> {
     ubx_struct_from_bytes(buf)
 }
 
 /// UBX-NAV-DOP message: Dilution of precision
 /// See 32.17.5 UBX-NAV-DOP (0x01 0x04)
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct NavDopM8 {
     pub itow: u32,  //0 ms GPS time of week of the navigation epoch.
@@ -115,13 +134,14 @@ pub struct NavDopM8 {
     pub n_dop: u16, //14 Northing DOP 0.01
     pub e_dop: u16, //16 Easting DOP 0.01
 }
+pub const UBX_MSG_LEN_NAV_DOP: usize = 18;
 pub fn nav_dop_from_bytes(buf: &[u8]) -> Option<NavDopM8> {
     ubx_struct_from_bytes(buf)
 }
 
-//UBX-CFG-MSG
+//TODO: UBX-CFG-MSG
 
-/// Read a UBX packed message type from bytes
+/// Read a UBX message type from bytes
 pub fn ubx_struct_from_bytes<T>(buf: &[u8]) -> Option<T> {
     let struct_size = core::mem::size_of::<T>();
     unsafe {

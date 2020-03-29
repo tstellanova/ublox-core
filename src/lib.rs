@@ -10,12 +10,12 @@ use embedded_hal as hal;
 mod interface;
 pub use interface::{DeviceInterface, SerialInterface};
 
-use crate::messages::{MonHardwareM8, NavDopM8, NavPosVelTimeM8, mon_hw_from_bytes};
-use hal::blocking::delay::DelayMs;
+use hal::blocking::delay::{DelayMs, DelayUs};
 
 mod messages;
+use messages::*;
 
-#[cfg(debug_assertions)]
+// #[cfg(debug_assertions)]
 use cortex_m_semihosting::hprintln;
 
 /// Errors in this crate
@@ -26,6 +26,7 @@ pub enum Error<CommE> {
 
     /// Sensor is not responding
     Unresponsive,
+
 }
 
 pub fn new_serial_driver<UART, CommE>(
@@ -69,10 +70,10 @@ where
 
     pub fn setup(
         &mut self,
-        _delay_source: &mut impl DelayMs<u8>,
+        _delay_source: &mut impl DelayUs<u32>,
     ) -> Result<(), DI::InterfaceError> {
         //TODO configure ublox sensor? or assume it's preconfigured?
-
+        //let _ = self.handle_one_message(&mut delay_source);
         Ok(())
     }
 
@@ -80,67 +81,110 @@ where
         return self.last_nav_pvt.clone();
     }
 
+    pub fn get_last_nav_dop(&self) -> Option<NavDopM8> {
+        return self.last_nav_dop.clone();
+    }
+
+    pub fn get_last_mon_hw(&self) -> Option<MonHardwareM8> {
+        return self.last_mon_hw.clone();
+    }
+
     /// generate a 16 bit checksum for a payload
-    fn checksum_for_payload(payload: &[u8]) -> [u8; 2] {
-        let mut checksum = [0u8; 2];
-        for b in payload {
-            checksum[0] = checksum[0].wrapping_add(*b);
+    fn checksum_for_payload(payload: &[u8], _dump_ck: bool) -> [u8; UBX_CKSUM_LEN] {
+        let mut checksum = [0u8; UBX_CKSUM_LEN];
+        for word in payload {
+            checksum[0] = checksum[0].wrapping_add(*word);
             checksum[1] = checksum[1].wrapping_add(checksum[0]);
+            //if dump_ck { hprintln!("{} : {} {}", *word, checksum[0], checksum[1]).unwrap(); }
         }
         checksum
     }
 
-    fn checksum_ok(&self, msg_len: usize) -> bool {
-        let ck = Self::checksum_for_payload(&self.read_buf[..msg_len]);
-        let recvd_ck = &self.read_buf[msg_len..msg_len+2];
-        ck[0] == recvd_ck[0] && ck[1] == recvd_ck[1]
+    /// Read our interface for a message of known size
+    ///
+    fn read_ubx_message(&mut self, msg_len: usize, dump_ck: bool) -> Result<(bool, usize), DI::InterfaceError>  {
+        // The length sent in the header is defined as being that of the payload only.
+        // It does not include the Preamble, Message Class, Message ID, Length, or CRC fields.
+        // The number format of the length field is a Little-Endian unsigned 16-bit integer.
+
+        let max_pay_idx = UBX_HEADER_LEN + msg_len;
+        let max_idx = max_pay_idx + UBX_CKSUM_LEN;
+        let desired_count = max_idx - UBX_HEADER_LEN;
+        self.read_buf[max_idx] = 0;
+        let read_count = self.di.read_many(&mut self.read_buf[UBX_HEADER_LEN..max_idx])?;
+        if read_count < desired_count {
+            hprintln!(">>> {} < {}", read_count, desired_count).unwrap();
+            return Ok((false, 0));
+        }
+        //TODO why checksum bad?
+        let calc_ck = Self::checksum_for_payload(&self.read_buf[..max_pay_idx], dump_ck);
+        let recvd_ck = &self.read_buf[(max_idx-UBX_CKSUM_LEN)..max_idx];
+        let matches = calc_ck[0] == recvd_ck[0] && calc_ck[1] == recvd_ck[1];
+        if matches {
+            Ok((true, max_pay_idx))
+        }
+        else {
+            // if dump_ck {
+            //     hprintln!(">>> ckf {:x?} != {:x?} for {:x?}",calc_ck, recvd_ck, &self.read_buf[..max_idx]).unwrap();
+            // }
+            // else {
+            //     hprintln!(">>> ckf {:x?} != {:x?}",calc_ck, recvd_ck).unwrap();
+            // }
+            Ok((false, max_pay_idx))
+        }
     }
 
     /// Read a UBX-NAV-PVT message from the device
     fn handle_msg_nav_pvt(&mut self) -> Result<(), DI::InterfaceError> {
-        const UBX_MSG_LEN_NAV_PVT: usize = 94;
-        self.di
-            .read_many(&mut self.read_buf[2..UBX_MSG_LEN_NAV_PVT+4])?;
-        if self.checksum_ok(UBX_MSG_LEN_NAV_PVT) {
+        let (ck_ok, max_pay_idx) = self.read_ubx_message(UBX_MSG_LEN_NAV_PVT, false)?;
+        if ck_ok {
             self.last_nav_pvt =
-                messages::nav_pvt_from_bytes(&self.read_buf.as_ref());
+                messages::nav_pvt_from_bytes(&self.read_buf[UBX_HEADER_LEN..max_pay_idx]);
+            //hprintln!(">>> nav_pvt").unwrap();
+        }
+        else {
+            //hprintln!(">>> nav_pvt ck fail").unwrap();
         }
         Ok(())
     }
 
     /// Read a UBX-NAV-DOP message from the device
     fn handle_msg_nav_dop(&mut self) -> Result<(), DI::InterfaceError> {
-        const UBX_MSG_LEN_NAV_DOP: usize = 18;
-        self.di
-            .read_many(&mut self.read_buf[2..UBX_MSG_LEN_NAV_DOP+4])?;
-        if self.checksum_ok(UBX_MSG_LEN_NAV_DOP) {
+        let (ck_ok, max_pay_idx) = self.read_ubx_message(UBX_MSG_LEN_NAV_DOP, false)?;
+        if ck_ok {
             self.last_nav_dop =
-                messages::nav_dop_from_bytes(&self.read_buf.as_ref());
+                messages::nav_dop_from_bytes(&self.read_buf[UBX_HEADER_LEN..max_pay_idx]);
+            //hprintln!(">>> nav_dop").unwrap();
+        }
+        else {
+            //hprintln!(">>> nav_dop ck fail").unwrap();
         }
         Ok(())
     }
 
     /// Read a UBX-MON-HW message from the device
     fn handle_msg_mon_hw(&mut self) -> Result<(), DI::InterfaceError> {
-        const UBX_MSG_LEN_MON_HW: usize = 60;
-        self.di
-            .read_many(&mut self.read_buf[2..UBX_MSG_LEN_MON_HW+4])?;
-        if self.checksum_ok(UBX_MSG_LEN_MON_HW) {
-            self.last_mon_hw = mon_hw_from_bytes(&self.read_buf.as_ref());
+        let (ck_ok, max_pay_idx) = self.read_ubx_message(UBX_MSG_LEN_MON_HW, false)?;
+        if ck_ok {
+            self.last_mon_hw =
+                messages::mon_hw_from_bytes(&self.read_buf[UBX_HEADER_LEN..max_pay_idx]);
+            //hprintln!(">>> mon_hw").unwrap();
+        }
+        else {
+            //hprintln!(">>> mon_hw ck fail").unwrap();
         }
         Ok(())
     }
 
     pub fn handle_all_messages(
         &mut self,
-        delay_source: &mut impl DelayMs<u8>,
+        delay_source: &mut impl DelayUs<u32>
     ) -> Result<usize, DI::InterfaceError> {
         let mut msg_count = 0;
         loop {
-            let handled_count = self.handle_one_message()?;
+            let handled_count = self.handle_one_message(delay_source)?;
             if handled_count > 0 {
                 msg_count += handled_count;
-                delay_source.delay_ms(1);
             } else {
                 break;
             }
@@ -149,67 +193,62 @@ where
     }
 
     /// return 1 if we handled a message?
-    pub fn handle_one_message(&mut self) -> Result<usize, DI::InterfaceError> {
-        const UBX_PRELUDE_BYTES: [u8; 2] = [0xB5, 0x62];
-        const UBX_MSG_CLASS_NAV: u8 = 0x01;
-        const UBX_MSG_CLASS_MON: u8 = 0x0A;
-
-        const UBX_MSG_ID_NAV_PVT: u16 = (UBX_MSG_CLASS_NAV as u16) << 8 | 0x07;
-        const UBX_MSG_ID_NAV_DOP: u16 = (UBX_MSG_CLASS_NAV as u16) << 8 | 0x04;
-        const UBX_MSG_ID_MON_HW: u16 = (UBX_MSG_CLASS_MON as u16) << 8 | 0x09;
-
+    pub fn handle_one_message(&mut self, delay_source: &mut impl DelayUs<u32>) -> Result<usize, DI::InterfaceError> {
         let mut msg_idx = 0;
-        let mut msg_class_id: u8 = 0;
+        // fill our incoming message buffer to avoid overruns
+        let available = self.di.fill(delay_source);
+        if available < 12 { //TODO somewhat arbitrary
+            return Ok(0);
+        }
+        // hprintln!(">>> fill: {} ", available).unwrap();
+
         loop {
-            let byte = self.di.read()?;
-            match msg_idx {
-                0 | 1 => {
-                    // look for the beginning of a UBX header
-                    if byte == UBX_PRELUDE_BYTES[msg_idx] {
-                        msg_idx += 1;
-                    } else {
-                        // reset: the byte doesn't match the prelude sequence
-                        msg_idx = 0;
-                    }
-                }
-                2 => {
-                    // next comes msg class
-                    msg_class_id = byte;
+            if msg_idx < 2 {
+                let byte = self.di.read()?;
+                if byte == UBX_PRELUDE_BYTES[msg_idx] {
                     msg_idx += 1;
                 }
-                3 => {
-                    // next comes msg ID
-                    let msg_sub_id = byte;
-                    let msg_unique_id: u16 =
-                        (msg_class_id as u16) << 8 | (msg_sub_id as u16);
-                    self.read_buf[0] = msg_class_id;
-                    self.read_buf[1] = msg_sub_id;
-                    match msg_unique_id {
-                        UBX_MSG_ID_NAV_PVT => {
-                            self.handle_msg_nav_pvt()?;
-                            hprintln!(">>> nav_pvt").unwrap();
-                            return Ok(1);
-                        }
-                        UBX_MSG_ID_NAV_DOP => {
-                            self.handle_msg_nav_dop()?;
-                            hprintln!(">>> nav_dop").unwrap();
-                            return Ok(1);
-                        }
-                        UBX_MSG_ID_MON_HW => {
-                            self.handle_msg_mon_hw()?;
-                            hprintln!(">>> mon_hw").unwrap();
-                            return Ok(1);
-                        }
-                        _ => {
-                            // unhandled message type...skip to next message
-                            hprintln!(">>> unh 0x{:x}", msg_unique_id).unwrap();
-                            return Ok(1);
-                        }
+                else {
+                    // reset: the byte doesn't match the prelude sequence
+                    //hprintln!(">>> jnk {:x} ", byte).unwrap();
+                    msg_idx = 0;
+                }
+            }
+            else {
+                let rc = self.di.read_many(&mut self.read_buf[..UBX_HEADER_LEN]);
+                if let Ok(read_count) = rc {
+                    if read_count < UBX_HEADER_LEN {
+                        hprintln!(">>> header trunc {} ", read_count).unwrap();
+                        return Ok(0);
                     }
                 }
-                _ => {
-                    msg_idx = 0; //skip to next message
+                else {
+                    hprintln!(">>> read_many fail {:?} ", rc).unwrap();
+                    return Ok(0);
                 }
+
+                let msg_unique_id: u16 =
+                    (self.read_buf[0] as u16) << 8 | (self.read_buf[1] as u16);
+                return match msg_unique_id {
+                    UBX_MSG_ID_NAV_PVT => {
+                        self.handle_msg_nav_pvt()?;
+                        Ok(1)
+                    }
+                    UBX_MSG_ID_NAV_DOP => {
+                        self.handle_msg_nav_dop()?;
+                        Ok(1)
+                    }
+                    UBX_MSG_ID_MON_HW => {
+                        self.handle_msg_mon_hw()?;
+                        Ok(1)
+                    }
+                    _ => {
+                        // unhandled message type...skip to next message
+                        hprintln!(">>> unh 0x{:x}", msg_unique_id).unwrap();
+                        Ok(1)
+                    }
+                }
+
             }
         }
     }
