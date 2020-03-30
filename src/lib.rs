@@ -78,21 +78,15 @@ where
     }
 
     pub fn take_last_nav_pvt(&mut self) -> Option<NavPosVelTimeM8> {
-        let tmp = self.last_nav_pvt;
-        self.last_nav_pvt = None;
-        return tmp;
+        self.last_nav_pvt.take()
     }
 
     pub fn take_last_nav_dop(&mut self) -> Option<NavDopM8> {
-        let tmp = self.last_nav_dop;
-        self.last_nav_dop = None;
-        return tmp;
+        self.last_nav_dop.take()
     }
 
     pub fn take_last_mon_hw(&mut self) -> Option<MonHardwareM8> {
-        let tmp = self.last_mon_hw;
-        self.last_mon_hw = None;
-        return tmp;
+        self.last_mon_hw.take()
     }
 
     /// generate a 16 bit checksum for a payload
@@ -122,7 +116,6 @@ where
             hprintln!(">>> {} < {}", read_count, desired_count).unwrap();
             return Ok((false, 0));
         }
-        //TODO why checksum bad?
         let calc_ck = Self::checksum_for_payload(&self.read_buf[..max_pay_idx], dump_ck);
         let recvd_ck = &self.read_buf[(max_idx-UBX_CKSUM_LEN)..max_idx];
         let matches = calc_ck[0] == recvd_ck[0] && calc_ck[1] == recvd_ck[1];
@@ -130,13 +123,16 @@ where
             Ok((true, max_pay_idx))
         }
         else {
-            // if dump_ck {
-            //     hprintln!(">>> ckf {:x?} != {:x?} for {:x?}",calc_ck, recvd_ck, &self.read_buf[..max_idx]).unwrap();
-            // }
-            // else {
-            //     hprintln!(">>> ckf {:x?} != {:x?}",calc_ck, recvd_ck).unwrap();
-            // }
-            Ok((false, max_pay_idx))
+            if dump_ck {
+                hprintln!(">>> ckf  {:x?} != {:x?} for {:x?}",calc_ck, recvd_ck, &self.read_buf[..max_idx]).unwrap();
+            }
+            else {
+                let msg_unique_id: u16 =
+                    (self.read_buf[0] as u16) << 8 | (self.read_buf[1] as u16);
+                hprintln!(">>> ckf 0x{:x}",msg_unique_id);
+                //hprintln!(">>> ckf 0x{:x} {:x?} != {:x?}", msg_unique_id,calc_ck, recvd_ck).unwrap();
+            }
+            Ok((false, 0))
         }
     }
 
@@ -146,24 +142,18 @@ where
         if ck_ok {
             self.last_nav_pvt =
                 messages::nav_pvt_from_bytes(&self.read_buf[UBX_HEADER_LEN..max_pay_idx]);
-            //hprintln!(">>> nav_pvt").unwrap();
         }
         else {
-            //hprintln!(">>> nav_pvt ck fail").unwrap();
         }
         Ok(())
     }
 
     /// Read a UBX-NAV-DOP message from the device
     fn handle_msg_nav_dop(&mut self) -> Result<(), DI::InterfaceError> {
-        let (ck_ok, max_pay_idx) = self.read_ubx_message(UBX_MSG_LEN_NAV_DOP, false)?;
+        let (ck_ok, max_pay_idx) = self.read_ubx_message(UBX_MSG_LEN_NAV_DOP, true)?;
         if ck_ok {
             self.last_nav_dop =
                 messages::nav_dop_from_bytes(&self.read_buf[UBX_HEADER_LEN..max_pay_idx]);
-            //hprintln!(">>> nav_dop").unwrap();
-        }
-        else {
-            //hprintln!(">>> nav_dop ck fail").unwrap();
         }
         Ok(())
     }
@@ -174,10 +164,6 @@ where
         if ck_ok {
             self.last_mon_hw =
                 messages::mon_hw_from_bytes(&self.read_buf[UBX_HEADER_LEN..max_pay_idx]);
-            //hprintln!(">>> mon_hw").unwrap();
-        }
-        else {
-            //hprintln!(">>> mon_hw ck fail").unwrap();
         }
         Ok(())
     }
