@@ -55,7 +55,7 @@ where
                     self.shuffler.push_one(byte);
                     fetch_count -= 1;
                 }
-                Err(nb::Error::WouldBlock) => { }
+                Err(nb::Error::WouldBlock) => {}
                 Err(nb::Error::Other(_)) => {
                     // in practice this is returning Overrun a ton on stm32h7
                     err_count += 1;

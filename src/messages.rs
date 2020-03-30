@@ -1,10 +1,9 @@
-
-
 pub const UBX_PRELUDE_LEN: usize = 2;
 pub const UBX_HEADER_LEN: usize = 4;
 pub const UBX_CKSUM_LEN: usize = 2;
 
-pub const UBX_WRAPPER_LEN: usize = UBX_PRELUDE_LEN + UBX_HEADER_LEN + UBX_CKSUM_LEN;
+pub const UBX_WRAPPER_LEN: usize =
+    UBX_PRELUDE_LEN + UBX_HEADER_LEN + UBX_CKSUM_LEN;
 pub const UBX_MIN_MSG_LEN: usize = UBX_MSG_LEN_NAV_DOP + UBX_WRAPPER_LEN;
 pub const UBX_MAX_MSG_LEN: usize = UBX_MSG_LEN_NAV_PVT + UBX_WRAPPER_LEN;
 

@@ -10,12 +10,11 @@ use embedded_hal as hal;
 mod interface;
 pub use interface::{DeviceInterface, SerialInterface};
 
-use hal::blocking::delay::{DelayUs};
+use hal::blocking::delay::DelayUs;
 
 #[allow(unused)]
 mod messages;
 use messages::*;
-
 
 /// Errors in this crate
 #[derive(Debug)]
@@ -126,7 +125,8 @@ where
         }
         let calc_ck =
             Self::checksum_for_payload(&self.read_buf[..max_pay_idx], dump_ck);
-        let recvd_ck = &self.read_buf[(max_msg_idx - UBX_CKSUM_LEN)..max_msg_idx];
+        let recvd_ck =
+            &self.read_buf[(max_msg_idx - UBX_CKSUM_LEN)..max_msg_idx];
         let matches = calc_ck[0] == recvd_ck[0] && calc_ck[1] == recvd_ck[1];
         if matches {
             Ok((true, max_pay_idx))
@@ -143,7 +143,7 @@ where
             self.last_nav_pvt = messages::nav_pvt_from_bytes(
                 &self.read_buf[UBX_HEADER_LEN..max_pay_idx],
             );
-        } 
+        }
         Ok(())
     }
 
@@ -176,7 +176,8 @@ where
         // The length sent in the header is defined as being that of the payload only.
         // It does not include the Preamble, Message Class, Message ID, Length, or CRC fields.
         // The number format of the length field is a Little-Endian unsigned 16-bit integer.
-        let msg_len = ((self.read_buf[2] as u16) + ((self.read_buf[3] as u16) << 8)) as usize;
+        let msg_len = ((self.read_buf[2] as u16)
+            + ((self.read_buf[3] as u16) << 8)) as usize;
         let max_pay_idx = UBX_HEADER_LEN + msg_len;
         let max_msg_idx = (max_pay_idx + UBX_CKSUM_LEN).min(READ_BUF_LEN);
         self.di
@@ -184,7 +185,6 @@ where
 
         Ok(())
     }
-
 
     pub fn handle_all_messages(
         &mut self,
@@ -204,9 +204,7 @@ where
     }
 
     /// return 1 if we handled a message?
-    pub fn handle_one_message(
-        &mut self,
-    ) -> Result<usize, DI::InterfaceError> {
+    pub fn handle_one_message(&mut self) -> Result<usize, DI::InterfaceError> {
         let mut msg_idx = 0;
         // fill our incoming message buffer to avoid overruns
         let available = self.di.fill();
@@ -224,14 +222,15 @@ where
                     msg_idx = 0;
                 }
             } else {
-                let rc = self.di.read_many(&mut self.read_buf[..UBX_HEADER_LEN]);
-                let header_fail =  match rc {
-                        Ok(read_count) => {
-                            read_count != UBX_HEADER_LEN
-                        }
-                        _=> { true }
-                    };
-                if header_fail { return Ok(0); }
+                let rc =
+                    self.di.read_many(&mut self.read_buf[..UBX_HEADER_LEN]);
+                let header_fail = match rc {
+                    Ok(read_count) => read_count != UBX_HEADER_LEN,
+                    _ => true,
+                };
+                if header_fail {
+                    return Ok(0);
+                }
 
                 let msg_unique_id: u16 =
                     (self.read_buf[0] as u16) << 8 | (self.read_buf[1] as u16);

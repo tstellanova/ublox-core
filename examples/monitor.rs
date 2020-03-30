@@ -12,9 +12,9 @@ extern crate panic_semihosting; // logs messages to the host stderr; requires a 
 use cortex_m;
 // use cortex_m_rt as rt;
 use cortex_m_rt::entry;
-use embedded_hal::blocking::delay::{DelayMs};
-use stm32h7xx_hal as p_hal;
+use embedded_hal::blocking::delay::DelayMs;
 use p_hal::{pac, prelude::*};
+use stm32h7xx_hal as p_hal;
 
 use arrayvec::ArrayString;
 use core::fmt;
@@ -87,9 +87,7 @@ fn main() -> ! {
                         &mut console_tx,
                         format_args!(
                             ">>> nav_pvt {} lat, lon: {}, {} \r\n",
-                            nav_pvt.itow,
-                            nav_pvt.lat,
-                            nav_pvt.lon,
+                            nav_pvt.itow, nav_pvt.lat, nav_pvt.lon,
                         ),
                     );
                 }
@@ -113,7 +111,10 @@ fn main() -> ! {
     }
 }
 
-fn console_print(out: &mut (impl Write + embedded_hal::serial::Write<u8>), args: Arguments<'_>) {
+fn console_print(
+    out: &mut (impl Write + embedded_hal::serial::Write<u8>),
+    args: Arguments<'_>,
+) {
     let mut format_buf = ArrayString::<[u8; 64]>::new();
     format_buf.clear();
     if fmt::write(&mut format_buf, args).is_ok() {
@@ -122,5 +123,3 @@ fn console_print(out: &mut (impl Write + embedded_hal::serial::Write<u8>), args:
         let _ = out.flush();
     }
 }
-
-
