@@ -72,8 +72,13 @@ where
         &mut self,
         _delay_source: &mut impl DelayUs<u32>,
     ) -> Result<(), DI::InterfaceError> {
-        //TODO configure ublox sensor? or assume it's preconfigured?
+        //TODO configure ublox sensor?
         //let _ = self.handle_one_message(&mut delay_source);
+
+        // let nav_dop_size =  core::mem::size_of::<NavDopM8>();
+        // if nav_dop_size != UBX_MSG_LEN_NAV_DOP {
+        //     hprintln!("nav_dop {} != {}",nav_dop_size, UBX_MSG_LEN_NAV_DOP);
+        // }
         Ok(())
     }
 
@@ -127,9 +132,9 @@ where
                 hprintln!(">>> ckf  {:x?} != {:x?} for {:x?}",calc_ck, recvd_ck, &self.read_buf[..max_idx]).unwrap();
             }
             else {
-                let msg_unique_id: u16 =
-                    (self.read_buf[0] as u16) << 8 | (self.read_buf[1] as u16);
-                hprintln!(">>> ckf 0x{:x}",msg_unique_id);
+                // let msg_unique_id: u16 =
+                //     (self.read_buf[0] as u16) << 8 | (self.read_buf[1] as u16);
+                // hprintln!(">>> ckf 0x{:x}",msg_unique_id);
                 //hprintln!(">>> ckf 0x{:x} {:x?} != {:x?}", msg_unique_id,calc_ck, recvd_ck).unwrap();
             }
             Ok((false, 0))
@@ -154,6 +159,9 @@ where
         if ck_ok {
             self.last_nav_dop =
                 messages::nav_dop_from_bytes(&self.read_buf[UBX_HEADER_LEN..max_pay_idx]);
+            if self.last_nav_dop.is_none() {
+                hprintln!(">>> dop wrong? {:x?}",&self.read_buf[UBX_HEADER_LEN..max_pay_idx]);
+            }
         }
         Ok(())
     }

@@ -142,20 +142,17 @@ pub fn nav_dop_from_bytes(buf: &[u8]) -> Option<NavDopM8> {
 //TODO: UBX-CFG-MSG
 
 /// Read a UBX message type from bytes
-pub fn ubx_struct_from_bytes<T>(buf: &[u8]) -> Option<T> {
-    let struct_size = core::mem::size_of::<T>();
+pub fn ubx_struct_from_bytes<T>(input: &[u8]) -> Option<T> {
     unsafe {
+        // due to struct layout / padding issues, the size of the struct
+        // might be, say, 4-byte word aligned while the message length is smaller
         let mut msg = core::mem::zeroed();
         let msg_as_slice = core::slice::from_raw_parts_mut(
             &mut msg as *mut T as *mut u8,
-            struct_size,
+            input.len(),
         );
-        if (&buf[..]).read_exact(msg_as_slice).is_ok() {
-            Some(msg)
-        } else {
-            core::mem::forget(msg);
-            None
-        }
+        msg_as_slice.copy_from_slice(input);
+        Some(msg)
     }
 }
 
