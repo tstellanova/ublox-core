@@ -1,8 +1,8 @@
 use super::DeviceInterface;
 use crate::Error;
 use embedded_hal as hal;
-use nb::block;
 use hal::blocking::delay::DelayUs;
+use nb::block;
 
 use shufflebuf::ShuffleBuf;
 
@@ -12,7 +12,7 @@ use shufflebuf::ShuffleBuf;
 pub struct SerialInterface<SER> {
     /// the serial port to use when communicating
     serial: SER,
-    shuffler: ShuffleBuf
+    shuffler: ShuffleBuf,
 }
 
 impl<SER, CommE> SerialInterface<SER>
@@ -22,7 +22,7 @@ where
     pub fn new(serial_port: SER) -> Self {
         Self {
             serial: serial_port,
-            shuffler: ShuffleBuf::default()
+            shuffler: ShuffleBuf::default(),
         }
     }
 }
@@ -36,9 +36,8 @@ where
     fn read(&mut self) -> Result<u8, Self::InterfaceError> {
         let (count, byte) = self.shuffler.read_one();
         if count > 0 {
-            return Ok(byte)
-        }
-        else {
+            return Ok(byte);
+        } else {
             let mut block_byte = [0u8; 1];
             let count = self.read_many(&mut block_byte)?;
             Ok(block_byte[0])
@@ -62,7 +61,7 @@ where
                 Err(nb::Error::WouldBlock) => {
                     delay_source.delay_us(1);
                 }
-                Err(nb::Error::Other( foo )) => {
+                Err(nb::Error::Other(foo)) => {
                     // in practice this is returning Overrun a ton on stm32h7
                     err_count += 1;
                     if err_count > 100 {
@@ -79,7 +78,7 @@ where
         &mut self,
         buffer: &mut [u8],
     ) -> Result<usize, Self::InterfaceError> {
-        let mut avail = self.shuffler.available();
+        let avail = self.shuffler.available();
         if avail >= buffer.len() {
             let final_read_count = self.shuffler.read_many(buffer);
             return Ok(final_read_count);

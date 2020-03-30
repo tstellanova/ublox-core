@@ -1,6 +1,5 @@
 //used for converting byte slices to structs
-use genio::Read;
-
+// use genio::Read;
 
 pub const UBX_HEADER_LEN: usize = 4;
 pub const UBX_CKSUM_LEN: usize = 2;
@@ -95,7 +94,7 @@ pub fn nav_pvt_from_bytes(buf: &[u8]) -> Option<NavPosVelTimeM8> {
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct MonHardwareM8 {
-    pub pin_sel: u32,  //0 pinSel - Mask of Pins Set as Peripheral/PIO
+    pub pin_sel: u32, //0 pinSel - Mask of Pins Set as Peripheral/PIO
     pub pin_bank: u32, //4 pinBank - Mask of Pins Set as Bank A/B
     pub pin_direction: u32, //8 pinDir - Mask of Pins Set as Input/Output
     pub pin_values: u32, //12 pinVal - Mask of Pins Value Low/High
@@ -155,5 +154,3 @@ pub fn ubx_struct_from_bytes<T>(input: &[u8]) -> Option<T> {
         Some(msg)
     }
 }
-
-

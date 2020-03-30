@@ -5,7 +5,6 @@ pub use self::serial::SerialInterface;
 use embedded_hal as hal;
 use hal::blocking::delay::DelayUs;
 
-
 /// A method of communicating with the device
 pub trait DeviceInterface {
     /// Interface associated error type

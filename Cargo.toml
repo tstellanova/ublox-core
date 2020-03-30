@@ -22,7 +22,6 @@ readme = "README.md"
 [dependencies]
 embedded-hal = { version = "0.2.3", features = ["unproven"] }
 nb = {version = "0.1.2" }
-genio = {version="0.2.1", default-features = false}
 cortex-m-semihosting = "0.3.3"
 shufflebuf = { git="https://github.com/tstellanova/shufflebuf-rs" }
 
