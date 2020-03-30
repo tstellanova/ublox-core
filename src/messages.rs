@@ -1,12 +1,14 @@
-//used for converting byte slices to structs
-// use genio::Read;
 
+
+pub const UBX_PRELUDE_LEN: usize = 2;
 pub const UBX_HEADER_LEN: usize = 4;
 pub const UBX_CKSUM_LEN: usize = 2;
 
+pub const UBX_WRAPPER_LEN: usize = UBX_PRELUDE_LEN + UBX_HEADER_LEN + UBX_CKSUM_LEN;
+pub const UBX_MIN_MSG_LEN: usize = UBX_MSG_LEN_NAV_DOP + UBX_WRAPPER_LEN;
+pub const UBX_MAX_MSG_LEN: usize = UBX_MSG_LEN_NAV_PVT + UBX_WRAPPER_LEN;
+
 pub const UBX_PRELUDE_BYTES: [u8; 2] = [0xB5, 0x62];
-// pub const UBX_MSG_CLASS_NAV: u8 = 0x01;
-// pub const UBX_MSG_CLASS_MON: u8 = 0x0A;
 
 pub const UBX_MSG_ID_NAV_PVT: u16 = 0x0107;
 pub const UBX_MSG_ID_NAV_DOP: u16 = 0x0104;
@@ -138,7 +140,7 @@ pub fn nav_dop_from_bytes(buf: &[u8]) -> Option<NavDopM8> {
     ubx_struct_from_bytes(buf)
 }
 
-//TODO: UBX-CFG-MSG
+//TODO: add UBX-CFG-MSG and support for serializing it for sending
 
 /// Read a UBX message type from bytes
 pub fn ubx_struct_from_bytes<T>(input: &[u8]) -> Option<T> {

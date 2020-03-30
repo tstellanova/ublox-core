@@ -2,7 +2,6 @@ use super::DeviceInterface;
 use crate::Error;
 use embedded_hal as hal;
 use hal::blocking::delay::DelayUs;
-use nb::block;
 
 use shufflebuf::ShuffleBuf;
 
@@ -39,7 +38,8 @@ where
             return Ok(byte);
         } else {
             let mut block_byte = [0u8; 1];
-            let count = self.read_many(&mut block_byte)?;
+            //TODO in practice this hasn't failed yet, but we should handle the error
+            self.read_many(&mut block_byte)?;
             Ok(block_byte[0])
         }
     }
@@ -47,27 +47,25 @@ where
     fn fill(&mut self, delay_source: &mut impl DelayUs<u32>) -> usize {
         let mut fetch_count = self.shuffler.vacant();
         let mut err_count = 0;
-        let mut block_count = 0;
 
         while fetch_count > 0 {
             let rc = self.serial.read();
             match rc {
                 Ok(byte) => {
                     err_count = 0; //reset
-                    block_count = 0;
                     self.shuffler.push_one(byte);
                     fetch_count -= 1;
                 }
                 Err(nb::Error::WouldBlock) => {
+                    // TODO eliminate this delay as it's blocking?
                     delay_source.delay_us(1);
                 }
-                Err(nb::Error::Other(foo)) => {
+                Err(nb::Error::Other(_)) => {
                     // in practice this is returning Overrun a ton on stm32h7
                     err_count += 1;
                     if err_count > 100 {
                         break;
                     }
-                    //delay_source.delay_us(1);
                 }
             }
         }
