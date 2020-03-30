@@ -77,16 +77,22 @@ where
         Ok(())
     }
 
-    pub fn get_last_nav_pvt(&self) -> Option<NavPosVelTimeM8> {
-        return self.last_nav_pvt.clone();
+    pub fn take_last_nav_pvt(&mut self) -> Option<NavPosVelTimeM8> {
+        let tmp = self.last_nav_pvt;
+        self.last_nav_pvt = None;
+        return tmp;
     }
 
-    pub fn get_last_nav_dop(&self) -> Option<NavDopM8> {
-        return self.last_nav_dop.clone();
+    pub fn take_last_nav_dop(&mut self) -> Option<NavDopM8> {
+        let tmp = self.last_nav_dop;
+        self.last_nav_dop = None;
+        return tmp;
     }
 
-    pub fn get_last_mon_hw(&self) -> Option<MonHardwareM8> {
-        return self.last_mon_hw.clone();
+    pub fn take_last_mon_hw(&mut self) -> Option<MonHardwareM8> {
+        let tmp = self.last_mon_hw;
+        self.last_mon_hw = None;
+        return tmp;
     }
 
     /// generate a 16 bit checksum for a payload
