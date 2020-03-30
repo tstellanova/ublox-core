@@ -7,12 +7,12 @@ devices (M8 or later)
 This is work-in-progress
 
 - [x] Basic support for USART (serial) reads
-- [x] library builds ok (dev builds only currently)
-- [ ] release library builds ok (need to remove debug scaffolding)
-- [ ] Parsing of a few key message types:
+- [x] library builds ok 
+- [x] release library builds ok
+- [x] Parsing of a few key message types:
     UBX-NAV-PVT, UBX-NAV-DOP, UBX-MON-HW
+- [ ] SPI support (stubbed out)
 - [ ] USB support
-- [ ] SPI support
 - [ ] I2C support
 
 
@@ -20,7 +20,7 @@ This is work-in-progress
 
 Build example for eg Durandal stm32h743 board target:
 ```
-cargo build --example serial --target thumbv7em-none-eabihf 
+cargo build --example monitor --target thumbv7em-none-eabihf 
 ```
 
 

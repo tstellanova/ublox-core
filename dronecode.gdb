@@ -1,3 +1,11 @@
+# sample gdb configuration file for connecting to
+# eg Durandal flight controller using a Black Magic Probe
+# or the Zubax Dronecode Probe, which is very similar.
+
+# this value should match the dronecode debug port visible on your host
+# For my tests:
+# - /dev/cu.usbmodemBFDA9CEB1 is the gdb server port
+# - the other serial port is the serial UART port attached to UART7
 target extended-remote /dev/cu.usbmodemBFDA9CEB1
 
 # print demangled symbols
@@ -24,7 +32,6 @@ set backtrace limit 32
 monitor swdp_scan
 attach 1
 
-
 # # send captured ITM to the file itm.fifo
 # # (the microcontroller SWO pin must be connected to the programmer SWO pin)
 # # 8000000 must match the core clock frequency
@@ -38,6 +45,11 @@ attach 1
 # # enable ITM port 0
 # monitor itm port 0 on
 # monitor arm semihosting enable
+
+# don't confirm when quitting debugger
+define hook-quit
+    set confirm off
+end
 
 
 load

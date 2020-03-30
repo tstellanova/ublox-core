@@ -1,7 +1,6 @@
 use super::DeviceInterface;
 use crate::Error;
 use embedded_hal as hal;
-use hal::blocking::delay::DelayUs;
 
 use shufflebuf::ShuffleBuf;
 
@@ -44,7 +43,7 @@ where
         }
     }
 
-    fn fill(&mut self, delay_source: &mut impl DelayUs<u32>) -> usize {
+    fn fill(&mut self) -> usize {
         let mut fetch_count = self.shuffler.vacant();
         let mut err_count = 0;
 
@@ -56,10 +55,7 @@ where
                     self.shuffler.push_one(byte);
                     fetch_count -= 1;
                 }
-                Err(nb::Error::WouldBlock) => {
-                    // TODO eliminate this delay as it's blocking?
-                    delay_source.delay_us(1);
-                }
+                Err(nb::Error::WouldBlock) => { }
                 Err(nb::Error::Other(_)) => {
                     // in practice this is returning Overrun a ton on stm32h7
                     err_count += 1;

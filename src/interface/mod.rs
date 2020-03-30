@@ -1,9 +1,8 @@
 pub mod serial;
-
 pub use self::serial::SerialInterface;
 
-use embedded_hal as hal;
-use hal::blocking::delay::DelayUs;
+pub mod spi;
+pub use self::spi::SpiInterface;
 
 /// A method of communicating with the device
 pub trait DeviceInterface {
@@ -13,12 +12,14 @@ pub trait DeviceInterface {
     /// Fill up our buffer with unsolicited / periodic UBX messages.
     /// This function should be called before attempting to read.
     /// Returns the number of available bytes.
-    fn fill(&mut self, delay_source: &mut impl DelayUs<u32>) -> usize;
+    fn fill(&mut self) -> usize;
 
-    /// Read a single buffered byte (see the `fill` function)
+    /// Read a single buffered byte.
+    /// Call `fill` before calling this.
     fn read(&mut self) -> Result<u8, Self::InterfaceError>;
 
-    /// Read multiple buffered bytes (see the `fille` function)
+    /// Read multiple buffered bytes.
+    /// Call `fill` before calling this.
     fn read_many(
         &mut self,
         buffer: &mut [u8],

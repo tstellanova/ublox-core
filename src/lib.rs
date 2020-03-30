@@ -192,13 +192,13 @@ where
     ) -> Result<usize, DI::InterfaceError> {
         let mut msg_count = 0;
         loop {
-            let handled_count = self.handle_one_message(delay_source)?;
+            let handled_count = self.handle_one_message()?;
             if handled_count > 0 {
                 msg_count += handled_count;
             } else {
                 break;
             }
-
+            delay_source.delay_us(1000);
         }
         return Ok(msg_count);
     }
@@ -206,11 +206,10 @@ where
     /// return 1 if we handled a message?
     pub fn handle_one_message(
         &mut self,
-        delay_source: &mut impl DelayUs<u32>,
     ) -> Result<usize, DI::InterfaceError> {
         let mut msg_idx = 0;
         // fill our incoming message buffer to avoid overruns
-        let available = self.di.fill(delay_source);
+        let available = self.di.fill();
         if available < UBX_MIN_MSG_LEN {
             return Ok(0);
         }
@@ -257,13 +256,5 @@ where
                 };
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
     }
 }

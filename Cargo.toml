@@ -22,13 +22,18 @@ readme = "README.md"
 
 [dependencies]
 embedded-hal = { version = "0.2.3", features = ["unproven"] }
-nb = {version = "0.1.2" }
-shufflebuf = { git="https://github.com/tstellanova/shufflebuf-rs" }
+nb =  "0.1.2"
+shufflebuf = "0.1.0"
+
 
 [[example]]
-name = "serial"
+name = "serial_dump"
+
+[[example]]
+name = "monitor"
 
 [dev-dependencies]
+arrayvec = {version = "0.5.1", default-features = false}
 cortex-m = "0.6.0"
 cortex-m-rt = "0.6.10"
 panic-halt = "0.2.0"
@@ -36,4 +41,3 @@ panic-semihosting = "0.5.3"
 stm32h7 = { version = "0.10.0", features = ["stm32h743"] }
 #stm32h7xx-hal = { version = "0.4.0", features = ["stm32h743", "rt"] }
 stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = ["stm32h743", "rt"] }
-#stm32h7xx-hal = { path = "../stm32h7xx-hal",  features = ["stm32h743", "rt"] }
