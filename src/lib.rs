@@ -26,16 +26,16 @@ pub enum Error<CommE> {
     Unresponsive,
 }
 
-pub fn new_serial_driver<UART, CommE>(
-    uart: UART,
-) -> UbxDriver<SerialInterface<UART>>
-where
-    UART: hal::serial::Read<u8, Error = CommE>,
-    CommE: core::fmt::Debug,
-{
-    let iface = interface::SerialInterface::new(uart);
-    UbxDriver::new_with_interface(iface)
-}
+// pub fn new_serial_driver<UART, CommE>(
+//     uart: UART,
+// ) -> UbxDriver<SerialInterface<UART>>
+// where
+//     UART: hal::serial::Read<u8, Error = CommE>,
+//     CommE: core::fmt::Debug,
+// {
+//     let iface = interface::SerialInterface::new(uart);
+//     UbxDriver::new_with_interface(iface)
+// }
 
 /// Read buffer size based on maximum UBX message size we support
 const READ_BUF_LEN: usize = 128;

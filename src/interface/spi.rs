@@ -3,7 +3,6 @@ use hal::digital::v2::OutputPin;
 
 use super::DeviceInterface;
 use crate::Error;
-use shufflebuf::ShuffleBuf;
 
 /// This encapsulates the SPI peripheral and associated pins such as:
 /// - CSN: The chip select pin
@@ -12,7 +11,6 @@ pub struct SpiInterface<SPI, CSN> {
     _spi: SPI,
     /// the Chip Select pin (GPIO output) to use when communicating
     _csn: CSN,
-    _shuffler: ShuffleBuf,
 }
 
 impl<SPI, CSN, CommE, PinE> DeviceInterface for SpiInterface<SPI, CSN>

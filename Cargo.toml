@@ -23,7 +23,8 @@ readme = "README.md"
 [dependencies]
 embedded-hal = { version = "0.2.3", features = ["unproven"] }
 nb =  "0.1.2"
-shufflebuf = "0.1.0"
+bbqueue = "0.4.8"
+arraydeque = { version = "0.4", default-features = false }
 
 
 [[example]]

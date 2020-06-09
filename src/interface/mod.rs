@@ -20,6 +20,7 @@ pub trait DeviceInterface {
 
     /// Read multiple buffered bytes.
     /// Call `fill` before calling this.
+    /// Returns the number of bytes actually read.
     fn read_many(
         &mut self,
         buffer: &mut [u8],
