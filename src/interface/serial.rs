@@ -40,17 +40,17 @@ where
         Err(NoData)
     }
 
+
     fn fill(&mut self) -> usize {
-        let mut fetch_count = self.inner_buf.capacity() - self.inner_buf.len();
         let mut err_count = 0;
 
-        while fetch_count > 0 {
+        while !self.inner_buf.is_full()    {
             let rc = self.serial.read();
             match rc {
                 Ok(byte) => {
                     err_count = 0; //reset
-                    self.inner_buf.push_back(byte);
-                    fetch_count -= 1;
+                    //fail hard if pushing fails
+                    self.inner_buf.push_back(byte).unwrap();
                 }
                 Err(nb::Error::WouldBlock) => {}
                 Err(nb::Error::Other(_)) => {
