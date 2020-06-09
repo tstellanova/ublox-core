@@ -23,7 +23,8 @@ readme = "README.md"
 [dependencies]
 embedded-hal = { version = "0.2.3", features = ["unproven"] }
 nb =  "0.1.2"
-shufflebuf = "0.1.0"
+#shufflebuf = "0.1.0"
+shufflebuf = {path="../shufflebuf-rs"}
 
 
 [[example]]
