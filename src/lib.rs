@@ -22,6 +22,9 @@ pub enum Error<CommE> {
     /// Sensor communication error
     Comm(CommE),
 
+    /// Cannot read
+    NoData,
+
     /// Sensor is not responding
     Unresponsive,
 }

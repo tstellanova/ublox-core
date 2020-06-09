@@ -2,7 +2,8 @@ use super::DeviceInterface;
 use crate::Error;
 use embedded_hal as hal;
 
-use shufflebuf::ShuffleBuf;
+use arraydeque::ArrayDeque;
+use crate::Error::NoData;
 
 /// This encapsulates the Serial UART peripheral
 /// and associated pins such as
@@ -10,7 +11,7 @@ use shufflebuf::ShuffleBuf;
 pub struct SerialInterface<SER> {
     /// the serial port to use when communicating
     serial: SER,
-    shuffler: ShuffleBuf,
+    inner_buf: ArrayDeque<[u8; 256]>,
 }
 
 impl<SER, CommE> SerialInterface<SER>
@@ -20,7 +21,7 @@ where
     pub fn new(serial_port: SER) -> Self {
         Self {
             serial: serial_port,
-            shuffler: ShuffleBuf::default(),
+            inner_buf: ArrayDeque::new(),
         }
     }
 }
@@ -32,19 +33,15 @@ where
     type InterfaceError = Error<CommE>;
 
     fn read(&mut self) -> Result<u8, Self::InterfaceError> {
-        let (count, byte) = self.shuffler.read_one();
-        if count > 0 {
+        if self.inner_buf.len() > 0 {
+            let byte = self.inner_buf.pop_front().unwrap();
             return Ok(byte);
-        } else {
-            let mut block_byte = [0u8; 1];
-            //TODO in practice this hasn't failed yet, but we should handle the error
-            self.read_many(&mut block_byte)?;
-            Ok(block_byte[0])
         }
+        Err(NoData)
     }
 
     fn fill(&mut self) -> usize {
-        let mut fetch_count = self.shuffler.vacant();
+        let mut fetch_count = self.inner_buf.capacity() - self.inner_buf.len();
         let mut err_count = 0;
 
         while fetch_count > 0 {
@@ -52,7 +49,7 @@ where
             match rc {
                 Ok(byte) => {
                     err_count = 0; //reset
-                    self.shuffler.push_one(byte);
+                    self.inner_buf.push_back(byte);
                     fetch_count -= 1;
                 }
                 Err(nb::Error::WouldBlock) => {}
@@ -65,19 +62,23 @@ where
                 }
             }
         }
-        self.shuffler.available()
+        self.inner_buf.len()
     }
 
     fn read_many(
         &mut self,
         buffer: &mut [u8],
     ) -> Result<usize, Self::InterfaceError> {
-        let avail = self.shuffler.available();
-        if avail >= buffer.len() {
-            let final_read_count = self.shuffler.read_many(buffer);
-            return Ok(final_read_count);
+        let mut write_idx: usize = 0;
+        let desired = buffer.len();
+        let avail = self.inner_buf.len();
+        if avail >= desired {
+            while write_idx < desired {
+                buffer[write_idx] = self.inner_buf.pop_front().unwrap();
+                write_idx += 1;
+            }
         }
 
-        return Ok(0);
+        return Ok(write_idx);
     }
 }
