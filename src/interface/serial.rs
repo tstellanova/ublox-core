@@ -10,7 +10,7 @@ use shufflebuf::ShuffleBuf;
 pub struct SerialInterface<SER> {
     /// the serial port to use when communicating
     serial: SER,
-    shuffler: ShuffleBuf,
+    shuffler: ShuffleBuf<256>,
 }
 
 impl<SER, CommE> SerialInterface<SER>
@@ -34,7 +34,7 @@ where
     fn read(&mut self) -> Result<u8, Self::InterfaceError> {
         let (count, byte) = self.shuffler.read_one();
         if count > 0 {
-            return Ok(byte);
+            Ok(byte)
         } else {
             let mut block_byte = [0u8; 1];
             //TODO in practice this hasn't failed yet, but we should handle the error
@@ -78,6 +78,6 @@ where
             return Ok(final_read_count);
         }
 
-        return Ok(0);
+        Ok(0)
     }
 }

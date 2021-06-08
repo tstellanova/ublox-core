@@ -45,15 +45,15 @@ fn main() -> ! {
 
     // Constrain and Freeze clock
     let rcc = dp.RCC.constrain();
-    let mut ccdr = rcc.sys_ck(160.mhz()).freeze(vos, &dp.SYSCFG);
+    let ccdr = rcc.sys_ck(160.mhz()).freeze(vos, &dp.SYSCFG);
     let clocks = ccdr.clocks;
     let mut delay_source = p_hal::delay::Delay::new(cp.SYST, clocks);
 
     // Acquire the gpio peripherals.
     // This also enables the clock for GPIO in the RCC register.
-    let gpiob = dp.GPIOB.split(&mut ccdr.ahb4);
-    let gpioe = dp.GPIOE.split(&mut ccdr.ahb4);
-    let gpiof = dp.GPIOF.split(&mut ccdr.ahb4);
+    let gpiob = dp.GPIOB.split(ccdr.peripheral.GPIOB);
+    let gpioe = dp.GPIOE.split(ccdr.peripheral.GPIOE);
+    let gpiof = dp.GPIOF.split(ccdr.peripheral.GPIOF);
 
     //UART7 is debug (dronecode debug port): `(PF6, PE8)`
     let uart7_port = {
@@ -61,7 +61,7 @@ fn main() -> ! {
             p_hal::serial::config::Config::default().baudrate(57_600_u32.bps());
         let rx = gpiof.pf6.into_alternate_af7();
         let tx = gpioe.pe8.into_alternate_af7();
-        dp.UART7.usart((tx, rx), config, &mut ccdr).unwrap()
+        dp.UART7.serial((tx, rx), config, ccdr.peripheral.UART7, &ccdr.clocks).unwrap()
     };
 
     // GPS1 port USART1:
@@ -70,7 +70,7 @@ fn main() -> ! {
             p_hal::serial::config::Config::default().baudrate(115200.bps());
         let rx = gpiob.pb7.into_alternate_af7();
         let tx = gpiob.pb6.into_alternate_af7();
-        dp.USART1.usart((tx, rx), config, &mut ccdr).unwrap()
+        dp.USART1.serial((tx, rx), config, ccdr.peripheral.USART1, &ccdr.clocks).unwrap()
     };
     delay_source.delay_ms(1u8);
 
