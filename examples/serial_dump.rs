@@ -23,9 +23,7 @@ use core::convert::TryInto;
 use core::fmt::Write;
 use p_hal::serial::Error;
 
-type Usart1PortType = p_hal::serial::Serial<
-    USART1,
->;
+type Usart1PortType = p_hal::serial::Serial<USART1>;
 
 /// This isn't strictly an example: it's a tool for
 /// copying the input on the input port and writing it to the output port.
@@ -63,7 +61,9 @@ fn main() -> ! {
             p_hal::serial::config::Config::default().baudrate(57_600_u32.bps());
         let rx = gpiof.pf6.into_alternate_af7();
         let tx = gpioe.pe8.into_alternate_af7();
-        dp.UART7.serial((tx, rx), config, ccdr.peripheral.UART7, &ccdr.clocks).unwrap()
+        dp.UART7
+            .serial((tx, rx), config, ccdr.peripheral.UART7, &ccdr.clocks)
+            .unwrap()
     };
 
     const BAUD_SEQ: [u32; 6] = [115200, 38400, 57600, 9600, 115200, 230400];
@@ -76,7 +76,9 @@ fn main() -> ! {
             p_hal::serial::config::Config::default().baudrate(baud.bps());
         let rx = gpiob.pb7.into_alternate_af7();
         let tx = gpiob.pb6.into_alternate_af7();
-        dp.USART1.serial((tx, rx), config, ccdr.peripheral.USART1, &ccdr.clocks).unwrap()
+        dp.USART1
+            .serial((tx, rx), config, ccdr.peripheral.USART1, &ccdr.clocks)
+            .unwrap()
     };
 
     delay_source.delay_ms(1u8);

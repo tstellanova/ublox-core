@@ -12,7 +12,6 @@ pub use interface::{DeviceInterface, SerialInterface};
 
 use hal::blocking::delay::DelayUs;
 
-#[allow(unused)]
 mod messages;
 use messages::*;
 

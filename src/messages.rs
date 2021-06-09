@@ -5,6 +5,7 @@ pub const UBX_CKSUM_LEN: usize = 2;
 pub const UBX_WRAPPER_LEN: usize =
     UBX_PRELUDE_LEN + UBX_HEADER_LEN + UBX_CKSUM_LEN;
 pub const UBX_MIN_MSG_LEN: usize = UBX_MSG_LEN_NAV_DOP + UBX_WRAPPER_LEN;
+#[allow(unused)]
 pub const UBX_MAX_MSG_LEN: usize = UBX_MSG_LEN_NAV_PVT + UBX_WRAPPER_LEN;
 
 pub const UBX_PRELUDE_BYTES: [u8; 2] = [0xB5, 0x62];
@@ -85,6 +86,7 @@ pub struct NavPosVelTimeM8 {
     /// 90 Magnetic declination accuracy (1e-2 degrees)
     pub mag_accuracy: u16,
 }
+
 pub const UBX_MSG_LEN_NAV_PVT: usize = 92;
 pub fn nav_pvt_from_bytes(buf: &[u8]) -> Option<NavPosVelTimeM8> {
     ubx_struct_from_bytes(buf)
@@ -115,6 +117,7 @@ pub struct MonHardwareM8 {
     pub pull_high: u32, //52 X4 - pullH - Mask of Pins Value using the PIO Pull High Resistor
     pub pull_low: u32, //56 X4 - pullL - Mask of Pins Value using the PIO Pull Low Resistor
 }
+
 pub const UBX_MSG_LEN_MON_HW: usize = 60;
 pub fn mon_hw_from_bytes(buf: &[u8]) -> Option<MonHardwareM8> {
     ubx_struct_from_bytes(buf)
@@ -134,6 +137,7 @@ pub struct NavDopM8 {
     pub n_dop: u16, //14 Northing DOP 0.01
     pub e_dop: u16, //16 Easting DOP 0.01
 }
+
 pub const UBX_MSG_LEN_NAV_DOP: usize = 18;
 pub fn nav_dop_from_bytes(buf: &[u8]) -> Option<NavDopM8> {
     ubx_struct_from_bytes(buf)

@@ -12,7 +12,7 @@ pub struct SpiInterface<SPI, CSN> {
     _spi: SPI,
     /// the Chip Select pin (GPIO output) to use when communicating
     _csn: CSN,
-    _shuffler: ShuffleBuf::<256>,
+    _shuffler: ShuffleBuf<256>,
 }
 
 impl<SPI, CSN, CommE, PinE> DeviceInterface for SpiInterface<SPI, CSN>

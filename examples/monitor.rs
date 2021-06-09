@@ -61,7 +61,9 @@ fn main() -> ! {
             p_hal::serial::config::Config::default().baudrate(57_600_u32.bps());
         let rx = gpiof.pf6.into_alternate_af7();
         let tx = gpioe.pe8.into_alternate_af7();
-        dp.UART7.serial((tx, rx), config, ccdr.peripheral.UART7, &ccdr.clocks).unwrap()
+        dp.UART7
+            .serial((tx, rx), config, ccdr.peripheral.UART7, &ccdr.clocks)
+            .unwrap()
     };
 
     // GPS1 port USART1:
@@ -70,7 +72,9 @@ fn main() -> ! {
             p_hal::serial::config::Config::default().baudrate(115200.bps());
         let rx = gpiob.pb7.into_alternate_af7();
         let tx = gpiob.pb6.into_alternate_af7();
-        dp.USART1.serial((tx, rx), config, ccdr.peripheral.USART1, &ccdr.clocks).unwrap()
+        dp.USART1
+            .serial((tx, rx), config, ccdr.peripheral.USART1, &ccdr.clocks)
+            .unwrap()
     };
     delay_source.delay_ms(1u8);
 
