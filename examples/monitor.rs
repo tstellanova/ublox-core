@@ -119,7 +119,7 @@ fn console_print(
     out: &mut (impl Write + embedded_hal::serial::Write<u8>),
     args: Arguments<'_>,
 ) {
-    let mut format_buf = ArrayString::<[u8; 64]>::new();
+    let mut format_buf = ArrayString::<64>::new();
     format_buf.clear();
     if fmt::write(&mut format_buf, args).is_ok() {
         //write on console out
