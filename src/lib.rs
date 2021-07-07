@@ -12,7 +12,6 @@ pub use interface::{DeviceInterface, SerialInterface};
 
 use hal::blocking::delay::DelayUs;
 
-#[allow(unused)]
 mod messages;
 use messages::*;
 
@@ -200,7 +199,7 @@ where
             }
             delay_source.delay_us(1000);
         }
-        return Ok(msg_count);
+        Ok(msg_count)
     }
 
     /// return 1 if we handled a message?

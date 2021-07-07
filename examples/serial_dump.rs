@@ -23,13 +23,7 @@ use core::convert::TryInto;
 use core::fmt::Write;
 use p_hal::serial::Error;
 
-type Usart1PortType = p_hal::serial::Serial<
-    USART1,
-    (
-        p_hal::gpio::gpiob::PB6<p_hal::gpio::Alternate<p_hal::gpio::AF7>>,
-        p_hal::gpio::gpiob::PB7<p_hal::gpio::Alternate<p_hal::gpio::AF7>>,
-    ),
->;
+type Usart1PortType = p_hal::serial::Serial<USART1>;
 
 /// This isn't strictly an example: it's a tool for
 /// copying the input on the input port and writing it to the output port.
@@ -49,16 +43,17 @@ fn main() -> ! {
 
     // Constrain and Freeze clock
     let rcc = dp.RCC.constrain();
-    let mut ccdr = rcc.sys_ck(160.mhz()).freeze(vos, &dp.SYSCFG);
+    let ccdr = rcc.sys_ck(160.mhz()).freeze(vos, &dp.SYSCFG);
     let clocks = ccdr.clocks;
     let mut delay_source = p_hal::delay::Delay::new(cp.SYST, clocks);
 
     // Acquire the GPIOC peripheral. This also enables the clock for
     // GPIOC in the RCC register.
-    let gpiob = dp.GPIOB.split(&mut ccdr.ahb4);
     // let gpioc = dp.GPIOC.split(&mut ccdr.ahb4);
-    let gpioe = dp.GPIOE.split(&mut ccdr.ahb4);
-    let gpiof = dp.GPIOF.split(&mut ccdr.ahb4);
+
+    let gpiob = dp.GPIOB.split(ccdr.peripheral.GPIOB);
+    let gpioe = dp.GPIOE.split(ccdr.peripheral.GPIOE);
+    let gpiof = dp.GPIOF.split(ccdr.peripheral.GPIOF);
 
     //UART7 is debug (dronecode port): `(PF6, PE8)`
     let uart7_port = {
@@ -66,7 +61,9 @@ fn main() -> ! {
             p_hal::serial::config::Config::default().baudrate(57_600_u32.bps());
         let rx = gpiof.pf6.into_alternate_af7();
         let tx = gpioe.pe8.into_alternate_af7();
-        dp.UART7.usart((tx, rx), config, &mut ccdr).unwrap()
+        dp.UART7
+            .serial((tx, rx), config, ccdr.peripheral.UART7, &ccdr.clocks)
+            .unwrap()
     };
 
     const BAUD_SEQ: [u32; 6] = [115200, 38400, 57600, 9600, 115200, 230400];
@@ -79,7 +76,9 @@ fn main() -> ! {
             p_hal::serial::config::Config::default().baudrate(baud.bps());
         let rx = gpiob.pb7.into_alternate_af7();
         let tx = gpiob.pb6.into_alternate_af7();
-        dp.USART1.usart((tx, rx), config, &mut ccdr).unwrap()
+        dp.USART1
+            .serial((tx, rx), config, ccdr.peripheral.USART1, &ccdr.clocks)
+            .unwrap()
     };
 
     delay_source.delay_ms(1u8);
