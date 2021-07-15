@@ -2,7 +2,7 @@ use super::DeviceInterface;
 use crate::Error;
 use embedded_hal as hal;
 
-use shufflebuf::ShuffleBuf;
+use rbf::RingBuffer;
 
 /// This encapsulates the Serial UART peripheral
 /// and associated pins such as
@@ -10,7 +10,7 @@ use shufflebuf::ShuffleBuf;
 pub struct SerialInterface<SER> {
     /// the serial port to use when communicating
     serial: SER,
-    shuffler: ShuffleBuf<256>,
+    buffer: RingBuffer<u8, 256>,
 }
 
 impl<SER, CommE> SerialInterface<SER>
@@ -20,7 +20,7 @@ where
     pub fn new(serial_port: SER) -> Self {
         Self {
             serial: serial_port,
-            shuffler: ShuffleBuf::default(),
+            buffer: RingBuffer::default(),
         }
     }
 }
@@ -32,9 +32,9 @@ where
     type InterfaceError = Error<CommE>;
 
     fn read(&mut self) -> Result<u8, Self::InterfaceError> {
-        let (count, byte) = self.shuffler.read_one();
-        if count > 0 {
-            Ok(byte)
+        let byte = self.buffer.pop();
+        if byte.is_some() {
+            Ok(byte.unwrap())
         } else {
             let mut block_byte = [0u8; 1];
             //TODO in practice this hasn't failed yet, but we should handle the error
@@ -44,7 +44,7 @@ where
     }
 
     fn fill(&mut self) -> usize {
-        let mut fetch_count = self.shuffler.vacant();
+        let mut fetch_count = 256 - self.buffer.len();
         let mut err_count = 0;
 
         while fetch_count > 0 {
@@ -52,7 +52,7 @@ where
             match rc {
                 Ok(byte) => {
                     err_count = 0; //reset
-                    self.shuffler.push_one(byte);
+                    self.buffer.push_overwrite(byte);
                     fetch_count -= 1;
                 }
                 Err(nb::Error::WouldBlock) => {}
@@ -65,16 +65,16 @@ where
                 }
             }
         }
-        self.shuffler.available()
+        self.buffer.len()
     }
 
     fn read_many(
         &mut self,
         buffer: &mut [u8],
     ) -> Result<usize, Self::InterfaceError> {
-        let avail = self.shuffler.available();
+        let avail = self.buffer.len();
         if avail >= buffer.len() {
-            let final_read_count = self.shuffler.read_many(buffer);
+            let final_read_count = self.buffer.pop_many(buffer);
             return Ok(final_read_count);
         }
 

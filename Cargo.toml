@@ -23,8 +23,7 @@ readme = "README.md"
 [dependencies]
 embedded-hal = { version = "0.2.5", features = ["unproven"] }
 nb = "1.0.0"
-shufflebuf = { git = "https://github.com/tstellanova/shufflebuf-rs" }
-
+rbf = { git = "https://github.com/barafael/rbf-rs" }
 
 [[example]]
 name = "serial_dump"
