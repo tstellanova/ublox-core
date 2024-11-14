@@ -2,7 +2,7 @@
 name = "ublox-core"
 version = "0.1.0"
 authors = ["Todd Stellanova <tstellanova@users.noreply.github.com>"]
-edition = "2018"
+edition = "2021"
 description = "Ublox M8 driver for embedded hal"
 license = "BSD-3-Clause"
 repository = "https://github.com/tstellanova/ublox-core"
