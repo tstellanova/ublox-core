@@ -11,8 +11,8 @@ keywords = ["embedded-hal-driver", "UBLOX", "GPS", "GNSS", "M8"]
 readme = "README.md"
 
 [dependencies]
-embedded-hal = { version = "0.2.5", features = ["unproven"] }
-nb = "1.0.0"
+embedded-hal = { version = "1.0.0" }
+embedded-io = "0.6.1"
 shufflebuf = { git = "https://github.com/tstellanova/shufflebuf-rs" }
 
 
@@ -34,3 +34,4 @@ stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = 
     "stm32h743",
     "rt",
 ] }
+nb = "1.0.0"

@@ -1,6 +1,4 @@
 use super::DeviceInterface;
-use crate::Error;
-use embedded_hal as hal;
 
 use shufflebuf::ShuffleBuf;
 
@@ -13,9 +11,9 @@ pub struct SerialInterface<SER> {
     shuffler: ShuffleBuf<256>,
 }
 
-impl<SER, CommE> SerialInterface<SER>
+impl<SER> SerialInterface<SER>
 where
-    SER: hal::serial::Read<u8, Error = CommE>,
+    SER: embedded_io::Read,
 {
     pub fn new(serial_port: SER) -> Self {
         Self {
@@ -25,11 +23,11 @@ where
     }
 }
 
-impl<SER, CommE> DeviceInterface for SerialInterface<SER>
+impl<SER> DeviceInterface for SerialInterface<SER>
 where
-    SER: hal::serial::Read<u8, Error = CommE>,
+    SER: embedded_io::Read,
 {
-    type InterfaceError = Error<CommE>;
+    type InterfaceError = SER::Error;
 
     fn read(&mut self) -> Result<u8, Self::InterfaceError> {
         let (count, byte) = self.shuffler.read_one();
@@ -47,16 +45,16 @@ where
         let mut fetch_count = self.shuffler.vacant();
         let mut err_count = 0;
 
+        let byte = 0u8;
         while fetch_count > 0 {
-            let rc = self.serial.read();
+            let rc = self.serial.read_exact(&mut [byte]);
             match rc {
-                Ok(byte) => {
+                Ok(()) => {
                     err_count = 0; //reset
                     self.shuffler.push_one(byte);
                     fetch_count -= 1;
                 }
-                Err(nb::Error::WouldBlock) => {}
-                Err(nb::Error::Other(_)) => {
+                Err(_e) => {
                     // in practice this is returning Overrun a ton on stm32h7
                     err_count += 1;
                     if err_count > 100 {

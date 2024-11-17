@@ -1,8 +1,7 @@
 use embedded_hal as hal;
-use hal::digital::v2::OutputPin;
+use hal::digital::OutputPin;
 
 use super::DeviceInterface;
-use crate::Error;
 use shufflebuf::ShuffleBuf;
 
 /// This encapsulates the SPI peripheral and associated pins such as:
@@ -15,13 +14,12 @@ pub struct SpiInterface<SPI, CSN> {
     _shuffler: ShuffleBuf<256>,
 }
 
-impl<SPI, CSN, CommE, PinE> DeviceInterface for SpiInterface<SPI, CSN>
+impl<SPI, CSN, PinE> DeviceInterface for SpiInterface<SPI, CSN>
 where
-    SPI: hal::blocking::spi::Write<u8, Error = CommE>
-        + hal::blocking::spi::Transfer<u8, Error = CommE>,
+    SPI: embedded_hal::spi::SpiDevice,
     CSN: OutputPin<Error = PinE>,
 {
-    type InterfaceError = Error<CommE>;
+    type InterfaceError = SPI::Error;
 
     fn fill(&mut self) -> usize {
         // See: 11.6.3 Back-To-Back Read and Write Access
