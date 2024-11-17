@@ -1,23 +1,20 @@
 use embedded_hal as hal;
-use hal::digital::OutputPin;
 
 use super::DeviceInterface;
 use shufflebuf::ShuffleBuf;
 
 /// This encapsulates the SPI peripheral and associated pins such as:
 /// - CSN: The chip select pin
-pub struct SpiInterface<SPI, CSN> {
+pub struct SpiInterface<SPI> {
     /// the serial port to use when communicating
     _spi: SPI,
     /// the Chip Select pin (GPIO output) to use when communicating
-    _csn: CSN,
     _shuffler: ShuffleBuf<256>,
 }
 
-impl<SPI, CSN, PinE> DeviceInterface for SpiInterface<SPI, CSN>
+impl<SPI> DeviceInterface for SpiInterface<SPI>
 where
     SPI: embedded_hal::spi::SpiDevice,
-    CSN: OutputPin<Error = PinE>,
 {
     type InterfaceError = SPI::Error;
 
