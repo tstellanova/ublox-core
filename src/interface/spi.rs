@@ -1,5 +1,3 @@
-use embedded_hal as hal;
-
 use super::DeviceInterface;
 use shufflebuf::ShuffleBuf;
 

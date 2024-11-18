@@ -77,7 +77,7 @@ fn main() -> ! {
             .serial((tx, rx), config, ccdr.peripheral.USART1, &ccdr.clocks)
             .unwrap()
     };
-    delay_source.delay_ms(1u8);
+    delay_source.delay_ms(1);
 
     let (mut console_tx, mut _console_rx) = uart7_port.split();
     let mut driver = ublox::new_serial_driver(usart);
@@ -112,7 +112,7 @@ fn main() -> ! {
         } else {
             console_print(&mut console_tx, format_args!(">>> {:?} \r\n", rc));
         }
-        delay_source.delay_ms(1u8);
+        delay_source.delay_ms(1);
     }
 }
 

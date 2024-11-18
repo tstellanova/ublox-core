@@ -81,7 +81,7 @@ fn main() -> ! {
             .unwrap()
     };
 
-    delay_source.delay_ms(1u8);
+    delay_source.delay_ms(1);
 
     let (mut dtx, mut _drx) = uart7_port.split();
 

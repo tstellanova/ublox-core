@@ -23,9 +23,7 @@ pub enum Error<CommE> {
     Unresponsive,
 }
 
-pub fn new_serial_driver<UART, CommE>(
-    uart: UART,
-) -> UbxDriver<SerialInterface<UART>>
+pub fn new_serial_driver<UART>(uart: UART) -> UbxDriver<SerialInterface<UART>>
 where
     UART: embedded_io::Read,
 {
@@ -88,7 +86,7 @@ where
         payload: &[u8],
         _dump_ck: bool,
     ) -> [u8; UBX_CKSUM_LEN] {
-        let mut checksum = [0u8; UBX_CKSUM_LEN];
+        let mut checksum = [0; UBX_CKSUM_LEN];
         for word in payload {
             checksum[0] = checksum[0].wrapping_add(*word);
             checksum[1] = checksum[1].wrapping_add(checksum[0]);
