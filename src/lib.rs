@@ -86,7 +86,7 @@ where
         payload: &[u8],
         _dump_ck: bool,
     ) -> [u8; UBX_CKSUM_LEN] {
-        let mut checksum = [0; UBX_CKSUM_LEN];
+        let mut checksum = [0u8; UBX_CKSUM_LEN];
         for word in payload {
             checksum[0] = checksum[0].wrapping_add(*word);
             checksum[1] = checksum[1].wrapping_add(checksum[0]);
@@ -95,7 +95,6 @@ where
     }
 
     /// Read our interface for a message of known size
-    ///
     fn read_ubx_message(
         &mut self,
         msg_len: usize,
