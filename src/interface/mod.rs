@@ -2,7 +2,6 @@ pub mod serial;
 pub use self::serial::SerialInterface;
 
 pub mod spi;
-pub use self::spi::SpiInterface;
 
 /// A method of communicating with the device
 pub trait DeviceInterface {

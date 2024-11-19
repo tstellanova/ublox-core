@@ -12,9 +12,10 @@ extern crate panic_semihosting; // logs messages to the host stderr; requires a 
 use cortex_m;
 // use cortex_m_rt as rt;
 use cortex_m_rt::entry;
-use embedded_hal::blocking::delay::DelayMs;
+use embedded_hal_compat::ForwardCompat;
 use p_hal::{pac, prelude::*};
 use stm32h7xx_hal as p_hal;
+use stm32h7xx_hal::time::Hertz;
 
 use arrayvec::ArrayString;
 use core::fmt;
@@ -45,7 +46,7 @@ fn main() -> ! {
 
     // Constrain and Freeze clock
     let rcc = dp.RCC.constrain();
-    let ccdr = rcc.sys_ck(160.mhz()).freeze(vos, &dp.SYSCFG);
+    let ccdr = rcc.sys_ck(Hertz::MHz(16)).freeze(vos, &dp.SYSCFG);
     let clocks = ccdr.clocks;
     let mut delay_source = p_hal::delay::Delay::new(cp.SYST, clocks);
 
@@ -59,8 +60,8 @@ fn main() -> ! {
     let uart7_port = {
         let config =
             p_hal::serial::config::Config::default().baudrate(57_600_u32.bps());
-        let rx = gpiof.pf6.into_alternate_af7();
-        let tx = gpioe.pe8.into_alternate_af7();
+        let rx = gpiof.pf6.into_alternate();
+        let tx = gpioe.pe8.into_alternate();
         dp.UART7
             .serial((tx, rx), config, ccdr.peripheral.UART7, &ccdr.clocks)
             .unwrap()
@@ -70,16 +71,16 @@ fn main() -> ! {
     let usart1_port = {
         let config =
             p_hal::serial::config::Config::default().baudrate(115200.bps());
-        let rx = gpiob.pb7.into_alternate_af7();
-        let tx = gpiob.pb6.into_alternate_af7();
+        let rx = gpiob.pb7.into_alternate();
+        let tx = gpiob.pb6.into_alternate();
         dp.USART1
             .serial((tx, rx), config, ccdr.peripheral.USART1, &ccdr.clocks)
             .unwrap()
     };
-    delay_source.delay_ms(1u8);
+    delay_source.delay_ms(1);
 
     let (mut console_tx, mut _console_rx) = uart7_port.split();
-    let mut driver = ublox::new_serial_driver(usart1_port);
+    let mut driver = ublox::new_serial_driver(usart);
     driver.setup(&mut delay_source).unwrap();
 
     loop {
@@ -111,12 +112,12 @@ fn main() -> ! {
         } else {
             console_print(&mut console_tx, format_args!(">>> {:?} \r\n", rc));
         }
-        delay_source.delay_ms(1u8);
+        delay_source.delay_ms(1);
     }
 }
 
 fn console_print(
-    out: &mut (impl Write + embedded_hal::serial::Write<u8>),
+    out: &mut (impl Write + embedded_io::Write),
     args: Arguments<'_>,
 ) {
     let mut format_buf = ArrayString::<64>::new();

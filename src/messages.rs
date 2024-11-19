@@ -18,6 +18,7 @@ pub const UBX_MSG_ID_MON_HW: u16 = 0x0A09;
 /// See 32.17.14 UBX-NAV-PVT (0x01 0x07)
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 pub struct NavPosVelTimeM8 {
     /// GPS time of week of the navigation epoch. (ms)
     pub itow: u32,
@@ -96,6 +97,7 @@ pub fn nav_pvt_from_bytes(buf: &[u8]) -> Option<NavPosVelTimeM8> {
 /// See 32.16.4 UBX-MON-HW (0x0A 0x09)
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 pub struct MonHardwareM8 {
     pub pin_sel: u32, //0 pinSel - Mask of Pins Set as Peripheral/PIO
     pub pin_bank: u32, //4 pinBank - Mask of Pins Set as Bank A/B
@@ -127,6 +129,7 @@ pub fn mon_hw_from_bytes(buf: &[u8]) -> Option<MonHardwareM8> {
 /// See 32.17.5 UBX-NAV-DOP (0x01 0x04)
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 pub struct NavDopM8 {
     pub itow: u32,  //0 ms GPS time of week of the navigation epoch.
     pub g_dop: u16, //4 gDOP Geometric DOP 0.01

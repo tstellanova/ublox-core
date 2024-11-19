@@ -5,12 +5,10 @@ LICENSE: BSD3 (see LICENSE file)
 
 #![no_std]
 
-use embedded_hal as hal;
-
 mod interface;
 pub use interface::{DeviceInterface, SerialInterface};
 
-use hal::blocking::delay::DelayUs;
+use embedded_hal::delay::DelayNs;
 
 mod messages;
 use messages::*;
@@ -25,15 +23,12 @@ pub enum Error<CommE> {
     Unresponsive,
 }
 
-pub fn new_serial_driver<UART, CommE>(
-    uart: UART,
-) -> UbxDriver<SerialInterface<UART>>
+pub fn new_serial_driver<UART>(uart: UART) -> UbxDriver<SerialInterface<UART>>
 where
-    UART: hal::serial::Read<u8, Error = CommE>,
-    CommE: core::fmt::Debug,
+    UART: embedded_io::Read,
 {
-    let iface = interface::SerialInterface::new(uart);
-    UbxDriver::new_with_interface(iface)
+    let interface = interface::SerialInterface::new(uart);
+    UbxDriver::new_with_interface(interface)
 }
 
 /// Read buffer size based on maximum UBX message size we support
@@ -41,7 +36,7 @@ const READ_BUF_LEN: usize = 128;
 
 pub struct UbxDriver<DI> {
     /// the device interface
-    di: DI,
+    device_interface: DI,
     read_buf: [u8; READ_BUF_LEN],
 
     /// The last received UBX-NAV-PVT from the device, if any
@@ -52,14 +47,13 @@ pub struct UbxDriver<DI> {
     last_nav_dop: Option<NavDopM8>,
 }
 
-impl<DI, CommE> UbxDriver<DI>
+impl<DI> UbxDriver<DI>
 where
-    DI: DeviceInterface<InterfaceError = Error<CommE>>,
-    CommE: core::fmt::Debug,
+    DI: DeviceInterface,
 {
     pub(crate) fn new_with_interface(device_interface: DI) -> Self {
         Self {
-            di: device_interface,
+            device_interface,
             read_buf: [0; READ_BUF_LEN],
             last_nav_pvt: None,
             last_mon_hw: None,
@@ -69,7 +63,7 @@ where
 
     pub fn setup(
         &mut self,
-        _delay_source: &mut impl DelayUs<u32>,
+        _delay_source: &mut impl DelayNs,
     ) -> Result<(), DI::InterfaceError> {
         //TODO configure ublox sensor using CFG message
         Ok(())
@@ -101,7 +95,6 @@ where
     }
 
     /// Read our interface for a message of known size
-    ///
     fn read_ubx_message(
         &mut self,
         msg_len: usize,
@@ -116,7 +109,7 @@ where
         let desired_count = max_msg_idx - UBX_HEADER_LEN;
         self.read_buf[max_msg_idx] = 0;
         let read_count = self
-            .di
+            .device_interface
             .read_many(&mut self.read_buf[UBX_HEADER_LEN..max_msg_idx])?;
         if read_count < desired_count {
             // unable to read enough bytes to fill the message struct
@@ -179,7 +172,7 @@ where
             + ((self.read_buf[3] as u16) << 8)) as usize;
         let max_pay_idx = UBX_HEADER_LEN + msg_len;
         let max_msg_idx = (max_pay_idx + UBX_CKSUM_LEN).min(READ_BUF_LEN);
-        self.di
+        self.device_interface
             .read_many(&mut self.read_buf[UBX_HEADER_LEN..max_msg_idx])?;
 
         Ok(())
@@ -187,7 +180,7 @@ where
 
     pub fn handle_all_messages(
         &mut self,
-        delay_source: &mut impl DelayUs<u32>,
+        delay_source: &mut impl DelayNs,
     ) -> Result<usize, DI::InterfaceError> {
         let mut msg_count = 0;
         loop {
@@ -206,14 +199,14 @@ where
     pub fn handle_one_message(&mut self) -> Result<usize, DI::InterfaceError> {
         let mut msg_idx = 0;
         // fill our incoming message buffer to avoid overruns
-        let available = self.di.fill();
+        let available = self.device_interface.fill();
         if available < UBX_MIN_MSG_LEN {
             return Ok(0);
         }
 
         loop {
             if msg_idx < 2 {
-                let byte = self.di.read()?;
+                let byte = self.device_interface.read()?;
                 if byte == UBX_PRELUDE_BYTES[msg_idx] {
                     msg_idx += 1;
                 } else {
@@ -221,8 +214,9 @@ where
                     msg_idx = 0;
                 }
             } else {
-                let rc =
-                    self.di.read_many(&mut self.read_buf[..UBX_HEADER_LEN]);
+                let rc = self
+                    .device_interface
+                    .read_many(&mut self.read_buf[..UBX_HEADER_LEN]);
                 let header_fail = match rc {
                     Ok(read_count) => read_count != UBX_HEADER_LEN,
                     _ => true,

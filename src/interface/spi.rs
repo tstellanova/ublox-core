@@ -1,27 +1,20 @@
-use embedded_hal as hal;
-use hal::digital::v2::OutputPin;
-
 use super::DeviceInterface;
-use crate::Error;
 use shufflebuf::ShuffleBuf;
 
 /// This encapsulates the SPI peripheral and associated pins such as:
 /// - CSN: The chip select pin
-pub struct SpiInterface<SPI, CSN> {
+pub struct SpiInterface<SPI> {
     /// the serial port to use when communicating
     _spi: SPI,
     /// the Chip Select pin (GPIO output) to use when communicating
-    _csn: CSN,
     _shuffler: ShuffleBuf<256>,
 }
 
-impl<SPI, CSN, CommE, PinE> DeviceInterface for SpiInterface<SPI, CSN>
+impl<SPI> DeviceInterface for SpiInterface<SPI>
 where
-    SPI: hal::blocking::spi::Write<u8, Error = CommE>
-        + hal::blocking::spi::Transfer<u8, Error = CommE>,
-    CSN: OutputPin<Error = PinE>,
+    SPI: embedded_hal::spi::SpiDevice,
 {
-    type InterfaceError = Error<CommE>;
+    type InterfaceError = SPI::Error;
 
     fn fill(&mut self) -> usize {
         // See: 11.6.3 Back-To-Back Read and Write Access
